@@ -1,0 +1,17 @@
+{
+	"folders":
+	[
+		{
+			"path": "."
+		}
+	],
+
+	"build_systems":
+	[
+		{
+			"name"			: "Run game",
+			"cmd"			: ["python","./main.py"],
+			"working_dir"	: "$project_path"
+		}
+	]
+}
