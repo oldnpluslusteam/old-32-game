@@ -72,6 +72,7 @@ class Door(SpriteGameEntity):
 
 	def spawn(self):
 		SpriteGameEntity.spawn(self)
+		self.game.add_entity_of_class('doors',self)
 
 	def on_collision(self, other):
 		# обработка столкновений
@@ -80,19 +81,54 @@ class Door(SpriteGameEntity):
 class Window(SpriteGameEntity):
 	SPRITE = 'rc/img/Window.png'
 	next_id = 0
-	def __init__(self, sx, sy):
+
+	def __init__(self, sx, sy, cat_limit = 1):
 		self.id = Window.next_id
 		Window.next_id += 1
 		SpriteGameEntity.__init__(self, Window.SPRITE)
 		self.x = sx
 		self.y = sy
+		self.cat_limit = cat_limit 
+		self.cats = []
+		self.setup_timer()
 
 	def spawn(self):
 		SpriteGameEntity.spawn(self)
+		self.game.add_entity_of_class('windows',self)
+		self.initial_spawn_cats()
 
 	def on_collision(self, other):
 		# обработка столкновений
-		pass		
+		pass
+
+	def update(self, dt):
+		if self.timer > 0:
+			self.timer -= dt
+		elif (len([cat for cat in self.cats if cat.is_visiable]) < self.cat_limit):
+			self.setup_timer()
+			self.spawn_cat()
+			print 'cat spawned'
+		else:
+			print len([cat for cat in self.cats if cat.is_visiable])
+
+	def initial_spawn_cats(self):
+		for i in range(self.cat_limit):
+			cat = MineCat(self.x, self.y)
+			cat.window = self
+			self.cats.append(cat)
+			self.game.addEntity(cat)
+
+	def spawn_cat(self):
+		for c in self.cats:
+			if not c.is_visiable:
+				c.x = self.x
+				c.y = self.y
+				c.throw()
+				break
+
+	def setup_timer(self):
+		self.timer = 2
+		#self.timer = random.random()*10+20
 	
 
 class MineCat(AnimatedGameEntity):
@@ -127,8 +163,12 @@ class MineCat(AnimatedGameEntity):
 		self.angVelocity = 0
 		self.timer = 30
 		self.scale = 1
+		self.window = None
+		self.is_visiable = False
 		#установка начальной скорости типа
 		self.setup_task()
+		print 'cat created'
+		
 
 	def update(self,dt):
 		self.timer -= dt
@@ -141,7 +181,14 @@ class MineCat(AnimatedGameEntity):
 		self.end_update_coordinates()
 
 	def spawn(self):
+		pass
+		
+		
+
+	def throw(self):
+		print 'cat spawned'
 		AnimatedGameEntity.spawn(self)
+		self.is_visiable = True
 		self.set_animation('Run')
 		self.game.add_entity_of_class('cats',self)
 
@@ -185,9 +232,10 @@ class MineCat(AnimatedGameEntity):
 		# 	self.lastTurn = 0
 		# 	ent.lastTurn = 0
 
-	def eat(self):
-		#анимка, звук поедания яблока или надо будет переопределить для каждого червя
-		pass
+	def destroy(self):
+		self.is_visiable = False
+		self.game.remove_entity_of_class('cats',self)
+		#self.window.cats.remove(self)
 
 def get_level(i):
 	return {
@@ -222,6 +270,10 @@ class MyGame(Game):
 			self.containers[eclass] = []
 		self.containers[eclass].append(entity)
 
+	def remove_entity_of_class(self,eclass,entity):
+		if eclass in self.containers:
+			self.containers[eclass].remove(entity)
+
 	def find_closest_of_classes(self,x,y,classes):
 		for cl in classes:
 			if cl in self.containers:
@@ -237,14 +289,12 @@ class MyGame(Game):
 						GAME_CONSOLE.write('nearest: ', ent.id, 'dist:', dist)
 			# если класса нет
 			else:
-				GAME_CONSOLE.write('no entity of this type: ',cl)
+				pass
 
 	def init_entities(self):
 		self.player = Player( )
 		self.addEntity(self.player)
-
-		self.addEntity(MineCat(50,50,1))
-		# self.add_entity_of_class('cats',MineCat(50,50,1))
+		self.addEntity(Window(50,50,3))
 
 	def handle_key_press(self,key):
 		if key in Player.DIR_KEYS:
