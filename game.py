@@ -70,10 +70,10 @@ class MineCat(AnimatedGameEntity):
 				{'img':'rc/img/MineCat_Stand_256x64.png','t':0.1,'anchor':(22,58),'rect':(96*3,0,96,96)}
 			],
 			'Run':[
-				{'img':'rc/img/MineCat_Run_256x64.png.png','t':0.07,'anchor':(22,58),'rect':(96*0,0,96,96)},
-				{'img':'rc/img/MineCat_Run_256x64.png.png','t':0.12,'anchor':(22,58),'rect':(96*1,0,96,96)},
-				{'img':'rc/img/MineCat_Run_256x64.png.png','t':0.10,'anchor':(22,58),'rect':(96*2,0,96,96)},
-				{'img':'rc/img/MineCat_Run_256x64.png.png','t':0.08,'anchor':(22,58),'rect':(96*3,0,96,96)}
+				{'img':'rc/img/MineCat_Run_256x64.png','t':0.07,'anchor':(22,58),'rect':(96*0,0,96,96)},
+				{'img':'rc/img/MineCat_Run_256x64.png','t':0.12,'anchor':(22,58),'rect':(96*1,0,96,96)},
+				{'img':'rc/img/MineCat_Run_256x64.png','t':0.10,'anchor':(22,58),'rect':(96*2,0,96,96)},
+				{'img':'rc/img/MineCat_Run_256x64.png','t':0.08,'anchor':(22,58),'rect':(96*3,0,96,96)}
 			]
 		}
 	)
@@ -165,6 +165,7 @@ class MyGame(Game):
 	def init_entities(self):
 		self.player = Player( )
 		self.addEntity(self.player)
+		self.addEntity(MineCat(50,50,1))
 
 	def handle_key_press(self,key):
 		if key == KEY.UP:
