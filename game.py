@@ -1,8 +1,6 @@
 #!/usr/bin/python
 # coding=UTF-8
 
-PLAYER_SPAWN = {'x': 0, 'y': 0}
-
 from framework import *
 import math, random
 
@@ -62,13 +60,11 @@ class GameScreen(AppScreen):
 
 class Door(SpriteGameEntity):
 	SPRITE = 'rc/img/Door.png'
-	next_id = 0
-	def __init__(self, sx, sy):
+
+	def __init__(self,x,y):
 		SpriteGameEntity.__init__(self, Door.SPRITE)
-		self.id = Door.next_id
-		Door.next_id += 1
-		self.x = sx
-		self.y = sy
+		self.x = x
+		self.y = y
 
 	def spawn(self):
 		SpriteGameEntity.spawn(self)
@@ -80,14 +76,12 @@ class Door(SpriteGameEntity):
 
 class Window(SpriteGameEntity):
 	SPRITE = 'rc/img/Window.png'
-	next_id = 0
 
-	def __init__(self, sx, sy, cat_limit = 1):
-		self.id = Window.next_id
-		Window.next_id += 1
+	def __init__(self,x,y,cat_limit = 1,id=None):
+		self.id = id
 		SpriteGameEntity.__init__(self, Window.SPRITE)
-		self.x = sx
-		self.y = sy
+		self.x = x
+		self.y = y
 		self.cat_limit = cat_limit 
 		self.cats = []
 		self.setup_timer()
@@ -149,14 +143,15 @@ class MineCat(AnimatedGameEntity):
 			]
 		}
 	)
-	def __init__(self,sx,sy,id=None):
+
+	def __init__(self,x,y,id):
 		AnimatedGameEntity.__init__(self, MineCat.ANIMATION_LIST)
 		if id is None:
 			id = MineCat.next_id
 			MineCat.next_id+=1
 		self.id = id
-		self.x = sx
-		self.y = sy
+		self.x = x
+		self.y = y
 		self.vx = 1.0
 		self.vy = 0.0
 		self.angle = 0
@@ -242,7 +237,8 @@ def get_level(i):
 		0: {
 			'entities': [
 				{'class':Player,'kwargs':{'x':0,'y':0}},
-				{'class':Window,'kwargs':{'x':0,'y':MyGame.LIMIT_BOTTOM,'angle':0}}
+				{'class':MineCat,'kwargs':{'x':100,'y':200,'id':0}},
+				{'class':Window,'kwargs':{'x':0,'y':MyGame.LIMIT_BOTTOM,'id':0}}
 			]
 		}
 	}[i];
@@ -261,9 +257,7 @@ class MyGame(Game):
 
 		self.world_space = LimitedWorldSpace(MyGame.LIMIT_LEFT,MyGame.LIMIT_RIGHT,MyGame.LIMIT_TOP,MyGame.LIMIT_BOTTOM)
 
-		self.init_entities( )
-
-		
+		self.init_entities(get_level(0))
 
 	def add_entity_of_class(self,eclass,entity):
 		if eclass not in self.containers:
@@ -291,10 +285,10 @@ class MyGame(Game):
 			else:
 				pass
 
-	def init_entities(self):
-		self.player = Player( )
-		self.addEntity(self.player)
-		self.addEntity(Window(50,50,3))
+	def init_entities(self,levelinfo):
+		ents = levelinfo['entities']
+		for ed in ents:
+			self.addEntity(ed['class'](**(ed['kwargs'])))
 
 	def handle_key_press(self,key):
 		if key in Player.DIR_KEYS:
@@ -307,10 +301,6 @@ class MyGame(Game):
 	def update(self,dt):
 		Game.update(self,dt)
 		self.find_closest_of_classes(self.player.x,self.player.y,('cats',))
-
-
-
-
 
 class Player(AnimatedGameEntity):
 	ANIMATION_LIST = AnimationList({
@@ -327,11 +317,11 @@ class Player(AnimatedGameEntity):
 
 	DIR_KEYS = [KEY.LEFT,KEY.RIGHT,KEY.UP,KEY.DOWN]
 
-	def __init__(self):
+	def __init__(self,x,y):
 		AnimatedGameEntity.__init__(self,Player.ANIMATION_LIST)
 		self.set_animation('idle')
-		self.x = PLAYER_SPAWN['x']
-		self.y = PLAYER_SPAWN['y']
+		self.x = x
+		self.y = y
 
 		self.vx = 0.0
 		self.vy = 0.0
@@ -374,6 +364,10 @@ class Player(AnimatedGameEntity):
 		else:
 			self.vx = 0
 			self.vy = 0
+
+	def spawn(self):
+		AnimatedGameEntity.spawn(self)
+		self.game.player = self
 
 	def update(self,dt):
 		self.update_direction( )
