@@ -33,10 +33,14 @@ class GameScreen(AppScreen):
 
 		self.addLayer(GameWorldLayer(self.game,self.camera))
 
-		# use_tip = GUITextItemLayer(self.game.use_tip_focus.x, self.game.use_tip_focus.y, self.game.use_tip_text)
-		# self.addLayer(use_tip)
+		
+		use_tip = TipLayer(self.camera, self.game.player, 0 ,20)
+		use_tip.setText('')
+		self.addLayer(use_tip)
+		self.game.use_tip_layer = use_tip
+		
 
-		tl = TipLayer(self.camera,self.game.player,0,20)
+		tl = TipLayer(self.camera, self.game.player, 0 ,20)
 		tl.setText("I'm player")
 		self.addLayer(tl)
 
@@ -73,6 +77,11 @@ class TipLayer(GUITextItemLayer):
 		self.mar_x,self.mar_y = mar_x,mar_y
 
 	def update_coordinates(self):
+		if self.entity is None:
+			self.visible = False
+			return
+		else:
+			self.visible = True
 		cx,cy = self.entity.x - self.camera.focus_x,self.entity.y - self.camera.focus_y
 		cx,cy = cx * self.camera.scale,cy * self.camera.scale
 		cx,cy = cx + 0.5 * self.camera.width,cy + 0.5 * self.camera.height
@@ -256,6 +265,7 @@ class MineCat(AnimatedGameEntity):
 		#self.window.cats.remove(self)
 
 	def select(self):
+		self.game.reset_use_tip()
 		self.game.set_use_tip(self,'Catch the cat!!!')
 
 	def use(self,user):
@@ -302,12 +312,12 @@ class MyGame(Game):
 		self.use_tip_text = None
 
 	def set_use_tip(self, entity, text):
-		self.use_tip_focus = entity
-		self.use_tip_text = text
+		self.use_tip_layer.entity = entity
+		self.use_tip_layer.setText(text)
 
 	def reset_use_tip(self):
-		self.use_tip_focus = None
-		self.use_tip_text = None
+		self.use_tip_layer.entity = None
+		self.use_tip_layer.setText('')
 
 	def add_entity_of_class(self,eclass,entity):
 		if eclass not in self.containers:
@@ -328,15 +338,20 @@ class MyGame(Game):
 					dist = math.sqrt(math.pow((ent.x-x),2) + math.pow((ent.y - y),2))
 					if min_distance is None:
 						min_distance = dist
+						num = ent
 					else:
 						if min_distance > dist:
 							min_distance = dist
+							num = ent
+					#ЭТО СДЕЛАНО ПЛОХО.
 					if dist < 100:
-						GAME_CONSOLE.write('nearest: ', ent.id, 'dist:', dist)
-						ent.stop()
+						# GAME_CONSOLE.write('nearest: ', ent.id, 'dist:', dist)
+						return num
+					else:
+						return None
 			# если класса нет
 			else:
-				pass
+				return None
 
 	def init_entities(self,levelinfo):
 		ents = levelinfo['entities']
@@ -353,7 +368,11 @@ class MyGame(Game):
 
 	def update(self,dt):
 		Game.update(self,dt)
-		self.find_closest_of_classes(self.player.x,self.player.y,self.interactive_items_list())
+
+		closesd = self.find_closest_of_classes(self.player.x,self.player.y,self.interactive_items_list())
+		# выделение близжайшего объекта
+		if closesd is not None:
+			closesd.select()
 
 	def interactive_items_list(self):
 		if self.player.state is 'run':
