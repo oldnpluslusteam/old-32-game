@@ -50,15 +50,44 @@ class GameScreen(AppScreen):
 		pass
 
 	def on_key_press(self,key,mod):
-		GAME_CONSOLE.write('SSC:Key down:',KEY.symbol_string(key),'(',key,') [+',KEY.modifiers_string(mod),']')
+		#GAME_CONSOLE.write('SSC:Key down:',KEY.symbol_string(key),'(',key,') [+',KEY.modifiers_string(mod),']')
 		self.game.handle_key_press(key)
 
 	def on_key_release(self,key,mod):
-		GAME_CONSOLE.write('SSC:Key down:',KEY.symbol_string(key),'(',key,') [+',KEY.modifiers_string(mod),']')
+		#GAME_CONSOLE.write('SSC:Key down:',KEY.symbol_string(key),'(',key,') [+',KEY.modifiers_string(mod),']')
 		self.game.handle_key_release(key)
 
 	def on_mouse_press(self,x,y,button,modifiers):
 		pass
+
+class Door(SpriteGameEntity):
+	SPRITE = 'rc/img/Door.png'
+	def __init__(self, sx, sy):
+		SpriteGameEntity.__init__(self, Door.SPRITE)
+		self.x = sx
+		self.y = sy
+
+	def spawn(self):
+		SpriteGameEntity.spawn(self)
+
+	def on_collision(self, other):
+		# обработка столкновений
+		pass
+
+class Window(SpriteGameEntity):
+	SPRITE = 'rc/img/Window.png'
+	def __init__(self, sx, sy):
+		SpriteGameEntity.__init__(self, Window.SPRITE)
+		self.x = sx
+		self.y = sy
+
+	def spawn(self):
+		SpriteGameEntity.spawn(self)
+
+	def on_collision(self, other):
+		# обработка столкновений
+		pass		
+	
 
 class MineCat(AnimatedGameEntity):
 	# цифры из предыдущего проекта
@@ -70,10 +99,10 @@ class MineCat(AnimatedGameEntity):
 				{'img':'rc/img/MineCat_Stand_256x64.png','t':0.1,'anchor':(22,58),'rect':(96*3,0,96,96)}
 			],
 			'Run':[
-				{'img':'rc/img/MineCat_Run_256x64.png.png','t':0.07,'anchor':(22,58),'rect':(96*0,0,96,96)},
-				{'img':'rc/img/MineCat_Run_256x64.png.png','t':0.12,'anchor':(22,58),'rect':(96*1,0,96,96)},
-				{'img':'rc/img/MineCat_Run_256x64.png.png','t':0.10,'anchor':(22,58),'rect':(96*2,0,96,96)},
-				{'img':'rc/img/MineCat_Run_256x64.png.png','t':0.08,'anchor':(22,58),'rect':(96*3,0,96,96)}
+				{'img':'rc/img/MineCat_Run_256x64.png','t':0.07,'anchor':(22,58),'rect':(96*0,0,96,96)},
+				{'img':'rc/img/MineCat_Run_256x64.png','t':0.12,'anchor':(22,58),'rect':(96*1,0,96,96)},
+				{'img':'rc/img/MineCat_Run_256x64.png','t':0.10,'anchor':(22,58),'rect':(96*2,0,96,96)},
+				{'img':'rc/img/MineCat_Run_256x64.png','t':0.08,'anchor':(22,58),'rect':(96*3,0,96,96)}
 			]
 		}
 	)
@@ -93,6 +122,8 @@ class MineCat(AnimatedGameEntity):
 
 	def update(self,dt):
 		self.timer -= dt
+		if self.timer <= 0:
+			self.setup_task()
 		k=400
 		self.affectAngleVelocity(dt)	
 		self.x += self.vx*dt*k
@@ -158,13 +189,41 @@ class MyGame(Game):
 	def __init__(self):
 		Game.__init__(self)
 
+		self.containers = {}
+
 		self.world_space = LimitedWorldSpace(MyGame.LIMIT_LEFT,MyGame.LIMIT_RIGHT,MyGame.LIMIT_TOP,MyGame.LIMIT_BOTTOM)
 
 		self.init_entities( )
 
+		
+
+	def add_entity_of_class(self,eclass,entity):
+		if eclass not in self.containers:
+			self.containers[eclass] = []
+		self.containers[eclass].append(entity)
+		self.addEntity(entity)
+
+	def find_closest_of_classes(self,x,y,classes):
+		for cl in classes:
+			if cl in self.containers:
+				min_distance = None
+				for ent in self.containers[cl]:
+					dist = math.sqrt(math.pow((ent.x-x),2) + math.pow((ent.y - y),2))
+					if min_distance is None:
+						min_distance = dist
+					else:
+						if min_distance > dist:
+							min_distance = dist
+					if dist < 100:
+						GAME_CONSOLE.write('nearest entity: ', ent.__class__.__name__, 'dist:', dist)
+			# если класса нет
+			else:
+				GAME_CONSOLE.write('no entity of this type: ',cl)
+
 	def init_entities(self):
 		self.player = Player( )
 		self.addEntity(self.player)
+		self.add_entity_of_class('cats',MineCat(50,50,1))
 
 	def handle_key_press(self,key):
 		if key in Player.DIR_KEYS:
@@ -173,6 +232,14 @@ class MyGame(Game):
 	def handle_key_release(self,key):
 		if key in Player.DIR_KEYS:
 			self.player.dirkeys[key] = 0
+
+	def update(self,dt):
+		Game.update(self,dt)
+		self.find_closest_of_classes(self.player.x,self.player.y,('cats',))
+
+
+
+
 
 class Player(AnimatedGameEntity):
 	ANIMATION_LIST = AnimationList({
@@ -244,3 +311,9 @@ class Player(AnimatedGameEntity):
 		self.y += self.vy * dt
 
 		self.end_update_coordinates( )
+
+	#возвращает расстояние от текущей сущности до указанной
+	def distance(self, entity):
+		dx = ent.x - self.x
+		dy = ent.y - self.y
+		return math.sqrt(dx*dx + dy*dy)-entity.radius
