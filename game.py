@@ -50,15 +50,44 @@ class GameScreen(AppScreen):
 		pass
 
 	def on_key_press(self,key,mod):
-		GAME_CONSOLE.write('SSC:Key down:',KEY.symbol_string(key),'(',key,') [+',KEY.modifiers_string(mod),']')
+		#GAME_CONSOLE.write('SSC:Key down:',KEY.symbol_string(key),'(',key,') [+',KEY.modifiers_string(mod),']')
 		self.game.handle_key_press(key)
 
 	def on_key_release(self,key,mod):
-		GAME_CONSOLE.write('SSC:Key down:',KEY.symbol_string(key),'(',key,') [+',KEY.modifiers_string(mod),']')
+		#GAME_CONSOLE.write('SSC:Key down:',KEY.symbol_string(key),'(',key,') [+',KEY.modifiers_string(mod),']')
 		self.game.handle_key_release(key)
 
 	def on_mouse_press(self,x,y,button,modifiers):
 		pass
+
+class Door(SpriteGameEntity):
+	SPRITE = 'rc/img/Door.png'
+	def __init__(self, sx, sy):
+		SpriteGameEntity.__init__(self, Door.SPRITE)
+		self.x = sx
+		self.y = sy
+
+	def spawn(self):
+		SpriteGameEntity.spawn(self)
+
+	def on_collision(self, other):
+		# обработка столкновений
+		pass
+
+class Window(SpriteGameEntity):
+	SPRITE = 'rc/img/Window.png'
+	def __init__(self, sx, sy):
+		SpriteGameEntity.__init__(self, Window.SPRITE)
+		self.x = sx
+		self.y = sy
+
+	def spawn(self):
+		SpriteGameEntity.spawn(self)
+
+	def on_collision(self, other):
+		# обработка столкновений
+		pass		
+	
 
 class MineCat(AnimatedGameEntity):
 	# цифры из предыдущего проекта
@@ -93,6 +122,8 @@ class MineCat(AnimatedGameEntity):
 
 	def update(self,dt):
 		self.timer -= dt
+		if self.timer <= 0:
+			self.setup_task()
 		k=400
 		self.affectAngleVelocity(dt)	
 		self.x += self.vx*dt*k
@@ -158,14 +189,41 @@ class MyGame(Game):
 	def __init__(self):
 		Game.__init__(self)
 
+		self.containers = {}
+
 		self.world_space = LimitedWorldSpace(MyGame.LIMIT_LEFT,MyGame.LIMIT_RIGHT,MyGame.LIMIT_TOP,MyGame.LIMIT_BOTTOM)
 
 		self.init_entities( )
 
+		
+
+	def add_entity_of_class(self,eclass,entity):
+		if eclass not in self.containers:
+			self.containers[eclass] = []
+		self.containers[eclass].append(entity)
+		self.addEntity(entity)
+
+	def find_closest_of_classes(self,x,y,classes):
+		for cl in classes:
+			if cl in self.containers:
+				min_distance = None
+				for ent in self.containers[cl]:
+					dist = math.sqrt(math.pow((ent.x-x),2) + math.pow((ent.y - y),2))
+					if min_distance is None:
+						min_distance = dist
+					else:
+						if min_distance > dist:
+							min_distance = dist
+					if dist < 100:
+						GAME_CONSOLE.write('nearest entity: ', ent.__class__.__name__, 'dist:', dist)
+			# если класса нет
+			else:
+				GAME_CONSOLE.write('no entity of this type: ',cl)
+
 	def init_entities(self):
 		self.player = Player( )
 		self.addEntity(self.player)
-		self.addEntity(MineCat(50,50,1))
+		self.add_entity_of_class('cats',MineCat(50,50,1))
 
 	def handle_key_press(self,key):
 		if key == KEY.UP:
@@ -182,6 +240,14 @@ class MyGame(Game):
 			self.player.stop_turn()
 		if key in (KEY.UP,KEY.DOWN):
 			self.player.stop_move()
+
+	def update(self,dt):
+		Game.update(self,dt)
+		self.find_closest_of_classes(self.player.x,self.player.y,('cats',))
+
+
+
+
 
 class Player(AnimatedGameEntity):
 	ANIMATION_LIST = AnimationList({
@@ -206,6 +272,8 @@ class Player(AnimatedGameEntity):
 		self.va = 0.0
 		self.vm = 0.0
 
+		self.is_have_cat = False
+
 	def start_move(self,d):
 		self.vm = d * 300.0
 
@@ -229,6 +297,11 @@ class Player(AnimatedGameEntity):
 
 		self.x += self.dirx * self.vm * dt
 		self.y += self.diry * self.vm * dt
-		print str(self.x),str(self.y),str(self.vx),str(self.vy)
 
 		self.end_update_coordinates( )
+
+	#возвращает расстояние от текущей сущности до указанной
+	def distance(self, entity):
+		dx = ent.x - self.x
+		dy = ent.y - self.y
+		return math.sqrt(dx*dx + dy*dy)-entity.radius
