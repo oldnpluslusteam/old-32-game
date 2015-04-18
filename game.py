@@ -36,6 +36,10 @@ class GameScreen(AppScreen):
 		# use_tip = GUITextItemLayer(self.game.use_tip_focus.x, self.game.use_tip_focus.y, self.game.use_tip_text)
 		# self.addLayer(use_tip)
 
+		tl = TipLayer(self.camera,self.game.player,0,20)
+		tl.setText("I'm player")
+		self.addLayer(tl)
+
 		GAME_CONSOLE.write('Game screen created.')
 
 
@@ -60,6 +64,28 @@ class GameScreen(AppScreen):
 
 	def on_mouse_press(self,x,y,button,modifiers):
 		pass
+
+class TipLayer(GUITextItemLayer):
+	def __init__(self,camera,entity,mar_x=0,mar_y=0):
+		GUITextItemLayer.__init__(self,0.0,0.0)
+		self.entity = entity
+		self.camera = camera
+		self.mar_x,self.mar_y = mar_x,mar_y
+
+	def update_coordinates(self):
+		cx,cy = self.entity.x - self.camera.focus_x,self.entity.y - self.camera.focus_y
+		cx,cy = cx * self.camera.scale,cy * self.camera.scale
+		cx,cy = cx + 0.5 * self.camera.width,cy + 0.5 * self.camera.height
+		cx,cy = int(cx),int(cy)
+		self.offset_x = cx + self.mar_x
+		self.offset_y = cy + self.mar_y
+		# self.update_rect( )
+		self.on_resize(0,0)
+
+	def draw(self):
+		self.update_coordinates( )
+		GUITextItemLayer.draw(self)
+
 
 class Door(SpriteGameEntity):
 	SPRITE = 'rc/img/Door.png'
@@ -113,7 +139,7 @@ class Window(SpriteGameEntity):
 
 	def initial_spawn_cats(self):
 		for i in range(self.cat_limit):
-			cat = MineCat(self.x, self.y)
+			cat = MineCat(self.x, self.y,0)
 			cat.window = self
 			self.cats.append(cat)
 			self.game.addEntity(cat)
@@ -135,17 +161,9 @@ class MineCat(AnimatedGameEntity):
 	next_id = 0
 	# цифры из предыдущего проекта
 	ANIMATION_LIST = AnimationList({
-			'Stand':[
-				{'img':'rc/img/MineCat_Stand_256x64.png','t':0.1,'anchor':(22,58),'rect':(96*0,0,96,96)},
-				{'img':'rc/img/MineCat_Stand_256x64.png','t':0.1,'anchor':(22,58),'rect':(96*1,0,96,96)},
-				{'img':'rc/img/MineCat_Stand_256x64.png','t':0.1,'anchor':(22,58),'rect':(96*2,0,96,96)},
-				{'img':'rc/img/MineCat_Stand_256x64.png','t':0.1,'anchor':(22,58),'rect':(96*3,0,96,96)}
-			],
 			'Run':[
-				{'img':'rc/img/MineCat_Run_256x64.png','t':0.07,'anchor':(22,58),'rect':(96*0,0,96,96)},
-				{'img':'rc/img/MineCat_Run_256x64.png','t':0.12,'anchor':(22,58),'rect':(96*1,0,96,96)},
-				{'img':'rc/img/MineCat_Run_256x64.png','t':0.10,'anchor':(22,58),'rect':(96*2,0,96,96)},
-				{'img':'rc/img/MineCat_Run_256x64.png','t':0.08,'anchor':(22,58),'rect':(96*3,0,96,96)}
+				{'img':'rc/img/cat-run.png','t':0.1,'anchor':'center','rect':(128*0,0,128,128)},
+				{'img':'rc/img/cat-run.png','t':0.1,'anchor':'center','rect':(128*1,0,128,128)}
 			]
 		}
 	)
@@ -345,8 +363,12 @@ class MyGame(Game):
 
 class Player(AnimatedGameEntity):
 	ANIMATION_LIST = AnimationList({
+		'run':[
+			{'img':'rc/img/player.png','t':0.1,'anchor':'center','rect':(0,0,128,128)},
+			{'img':'rc/img/player.png','t':0.1,'anchor':'center','rect':(256,0,128,128)}
+		],
 		'idle':[
-			{'img':'rc/img/64x64fg.png','anchor':'center','rect':(0,0,64,64)}
+			{'img':'rc/img/player.png','t':0,'anchor':'center','rect':(128,0,128,128)}
 		]
 	})
 
@@ -361,6 +383,7 @@ class Player(AnimatedGameEntity):
 	def __init__(self,x,y):
 		AnimatedGameEntity.__init__(self,Player.ANIMATION_LIST)
 		self.set_animation('idle')
+		self.move_state = 'idle'
 		self.x = x
 		self.y = y
 
@@ -413,6 +436,14 @@ class Player(AnimatedGameEntity):
 
 	def update(self,dt):
 		self.update_direction( )
+
+		if abs(self.vx) + abs(self.vy) > 0:
+			if self.move_state != 'run':
+				self.set_animation('run')
+				self.move_state = 'run'
+		elif self.move_state != 'idle':
+			self.set_animation('idle')
+			self.move_state = 'idle'
 
 		self.x += self.vx * dt
 		self.y += self.vy * dt
