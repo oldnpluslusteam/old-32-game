@@ -167,20 +167,12 @@ class MyGame(Game):
 		self.addEntity(self.player)
 
 	def handle_key_press(self,key):
-		if key == KEY.UP:
-			self.player.start_move(1)
-		if key == KEY.DOWN:
-			self.player.start_move(-1)
-		if key == KEY.LEFT:
-			self.player.start_turn(-1)
-		if key == KEY.RIGHT:
-			self.player.start_turn(1)
+		if key in Player.DIR_KEYS:
+			self.player.dirkeys[key] = 1
 
 	def handle_key_release(self,key):
-		if key in (KEY.LEFT,KEY.RIGHT):
-			self.player.stop_turn()
-		if key in (KEY.UP,KEY.DOWN):
-			self.player.stop_move()
+		if key in Player.DIR_KEYS:
+			self.player.dirkeys[key] = 0
 
 class Player(AnimatedGameEntity):
 	ANIMATION_LIST = AnimationList({
@@ -189,45 +181,66 @@ class Player(AnimatedGameEntity):
 		]
 	})
 
+	DIR_ANGLE_MAP = [
+		[7,0,1],
+		[6,None,2],
+		[5,4,3]
+	]
+
+	DIR_KEYS = [KEY.LEFT,KEY.RIGHT,KEY.UP,KEY.DOWN]
+
 	def __init__(self):
 		AnimatedGameEntity.__init__(self,Player.ANIMATION_LIST)
 		self.set_animation('idle')
 		self.x = PLAYER_SPAWN['x']
 		self.y = PLAYER_SPAWN['y']
-		self.update_direction( )
 
 		self.vx = 0.0
 		self.vy = 0.0
 
 		self.dirx = 0.0
-		self.diry = -1.0
+		self.diry = 0.0
 
-		self.va = 0.0
-		self.vm = 0.0
-
-	def start_move(self,d):
-		self.vm = d * 300.0
-
-	def start_turn(self,d):
-		self.va = d * 80.0
-
-	def stop_move(self):
-		self.vm = 0.0
-
-	def stop_turn(self):
-		self.va = 0.0
+		self.dirkeys = {k:0 for k in Player.DIR_KEYS}
 
 	def update_direction(self):
-		rrad = (self.rotation / 180.0) * math.pi
-		self.dirx,self.diry = math.sin(rrad),math.cos(rrad)
-		# print 'UD:',str(self.rotation),str(self.dirx),str(self.diry)
+		if self.dirkeys[Player.DIR_KEYS[0]] != self.dirkeys[Player.DIR_KEYS[1]]:
+			if self.dirkeys[Player.DIR_KEYS[0]] != 0:
+				self.dirx = -1
+			else:
+				self.dirx = 1
+		else:
+			self.dirx = 0
+
+		if self.dirkeys[Player.DIR_KEYS[2]] != self.dirkeys[Player.DIR_KEYS[3]]:
+			if self.dirkeys[Player.DIR_KEYS[2]] != 0:
+				self.diry = 1
+			else:
+				self.diry = -1
+		else:
+			self.diry = 0
+
+		k = 200.0
+		angle = Player.DIR_ANGLE_MAP[int(1-self.diry)][int(1+self.dirx)]
+
+		if angle != None:
+			self.rotation = angle * 45
+
+		l2 = self.dirx * self.dirx + self.diry * self.diry
+
+		if l2 != 0:
+			l = 1.0 / math.sqrt(self.dirx * self.dirx + self.diry * self.diry)
+
+			self.vx = self.dirx * l * k
+			self.vy = self.diry * l * k
+		else:
+			self.vx = 0
+			self.vy = 0
 
 	def update(self,dt):
-		self.rotation += self.va * dt
 		self.update_direction( )
 
-		self.x += self.dirx * self.vm * dt
-		self.y += self.diry * self.vm * dt
-		print str(self.x),str(self.y),str(self.vx),str(self.vy)
+		self.x += self.vx * dt
+		self.y += self.vy * dt
 
 		self.end_update_coordinates( )
