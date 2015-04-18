@@ -33,6 +33,9 @@ class GameScreen(AppScreen):
 
 		self.addLayer(GameWorldLayer(self.game,self.camera))
 
+		# use_tip = GUITextItemLayer(self.game.use_tip_focus.x, self.game.use_tip_focus.y, self.game.use_tip_text)
+		# self.addLayer(use_tip)
+
 		GAME_CONSOLE.write('Game screen created.')
 
 
@@ -84,26 +87,29 @@ class Window(SpriteGameEntity):
 		self.y = y
 		self.cat_limit = cat_limit 
 		self.cats = []
+		self.alive_cats = 0
 		self.setup_timer()
 
 	def spawn(self):
 		SpriteGameEntity.spawn(self)
 		self.game.add_entity_of_class('windows',self)
 		self.initial_spawn_cats()
+		self.end_update_coordinates()
 
 	def on_collision(self, other):
 		# обработка столкновений
 		pass
 
 	def update(self, dt):
+
 		if self.timer > 0:
 			self.timer -= dt
-		elif (len([cat for cat in self.cats if cat.is_visiable]) < self.cat_limit):
+		elif self.alive_cats < self.cat_limit:
 			self.setup_timer()
 			self.spawn_cat()
 			print 'cat spawned'
 		else:
-			print len([cat for cat in self.cats if cat.is_visiable])
+			pass
 
 	def initial_spawn_cats(self):
 		for i in range(self.cat_limit):
@@ -114,7 +120,7 @@ class Window(SpriteGameEntity):
 
 	def spawn_cat(self):
 		for c in self.cats:
-			if not c.is_visiable:
+			if not c.sprite.visible:
 				c.x = self.x
 				c.y = self.y
 				c.throw()
@@ -144,11 +150,8 @@ class MineCat(AnimatedGameEntity):
 		}
 	)
 
-	def __init__(self,x,y,id):
+	def __init__(self,x,y,id = None):
 		AnimatedGameEntity.__init__(self, MineCat.ANIMATION_LIST)
-		if id is None:
-			id = MineCat.next_id
-			MineCat.next_id+=1
 		self.id = id
 		self.x = x
 		self.y = y
@@ -159,38 +162,37 @@ class MineCat(AnimatedGameEntity):
 		self.timer = 30
 		self.scale = 1
 		self.window = None
-		self.is_visiable = False
 		#установка начальной скорости типа
 		self.setup_task()
 		print 'cat created'
-		
 
-	def update(self,dt):
-		self.timer -= dt
-		if self.timer <= 0:
-			self.setup_task()
-		k=400
-		self.affectAngleVelocity(dt)	
-		self.x += self.vx*dt*k
-		self.y += self.vy*dt*k
-		self.end_update_coordinates()
 
 	def spawn(self):
-		pass
-		
-		
+		AnimatedGameEntity.spawn(self)
+		self.sprite.visible = False
+
+	def update(self,dt):
+		if self.sprite.visible:
+			self.timer -= dt
+			if self.timer <= 0:
+				self.setup_task()
+			k=400 # скорости коэффициент
+			self.affectAngleVelocity(dt)	
+			self.x += self.vx*dt*k
+			self.y += self.vy*dt*k
+			self.end_update_coordinates()
 
 	def throw(self):
 		print 'cat spawned'
-		AnimatedGameEntity.spawn(self)
-		self.is_visiable = True
+		self.window.alive_cats += 1
 		self.set_animation('Run')
 		self.game.add_entity_of_class('cats',self)
+		self.sprite.visible = True
 
 	def velocity(self):
 		return math.sqrt(self.vx*self.vx + self.vy*self.vY)
 
-	def setVelocity(slef, k = 1):
+	def setVelocity(self, k = 1):
 		self.vx = k*self.vx
 		self.vy = k*self.vy
 
@@ -228,17 +230,37 @@ class MineCat(AnimatedGameEntity):
 		# 	ent.lastTurn = 0
 
 	def destroy(self):
-		self.is_visiable = False
+		self.sprite.visible = False
 		self.game.remove_entity_of_class('cats',self)
+		self.window.alive_cats -= 1
+		#self.x = 9999
+		#self.y = 9999
 		#self.window.cats.remove(self)
+
+	def select(self):
+		self.game.set_use_tip(self,'Catch the cat!!!')
+
+	def use(self,user):
+		user.state = 'carry'
+		self.stop()
+
+	def stop(self):
+		self.sprite.visible = False
+		#self.game.remove_entity_of_class('cats',self)
+		#GAME_CONSOLE.write('кот пойман','YRA')
+
+	def run(self):
+		self.sprite.visible = True
+		#self.game.add_entity_of_class('cats',self)
+		#GAME_CONSOLE.write('кот отпущен','yra')
 
 def get_level(i):
 	return {
 		0: {
 			'entities': [
 				{'class':Player,'kwargs':{'x':0,'y':0}},
-				{'class':MineCat,'kwargs':{'x':100,'y':200,'id':0}},
-				{'class':Window,'kwargs':{'x':0,'y':MyGame.LIMIT_BOTTOM,'id':0}}
+				#{'class':MineCat,'kwargs':{'x':100,'y':200,'id':0}},
+				{'class':Window,'kwargs':{'x':0,'y':MyGame.LIMIT_BOTTOM,'id':0,'cat_limit':3}}
 			]
 		}
 	}[i];
@@ -258,6 +280,16 @@ class MyGame(Game):
 		self.world_space = LimitedWorldSpace(MyGame.LIMIT_LEFT,MyGame.LIMIT_RIGHT,MyGame.LIMIT_TOP,MyGame.LIMIT_BOTTOM)
 
 		self.init_entities(get_level(0))
+		self.use_tip_focus = None
+		self.use_tip_text = None
+
+	def set_use_tip(self, entity, text):
+		self.use_tip_focus = entity
+		self.use_tip_text = text
+
+	def reset_use_tip(self):
+		self.use_tip_focus = None
+		self.use_tip_text = None
 
 	def add_entity_of_class(self,eclass,entity):
 		if eclass not in self.containers:
@@ -273,6 +305,8 @@ class MyGame(Game):
 			if cl in self.containers:
 				min_distance = None
 				for ent in self.containers[cl]:
+					if not ent.sprite.visible:
+						continue
 					dist = math.sqrt(math.pow((ent.x-x),2) + math.pow((ent.y - y),2))
 					if min_distance is None:
 						min_distance = dist
@@ -281,6 +315,7 @@ class MyGame(Game):
 							min_distance = dist
 					if dist < 100:
 						GAME_CONSOLE.write('nearest: ', ent.id, 'dist:', dist)
+						ent.stop()
 			# если класса нет
 			else:
 				pass
@@ -300,7 +335,13 @@ class MyGame(Game):
 
 	def update(self,dt):
 		Game.update(self,dt)
-		self.find_closest_of_classes(self.player.x,self.player.y,('cats',))
+		self.find_closest_of_classes(self.player.x,self.player.y,self.interactive_items_list())
+
+	def interactive_items_list(self):
+		if self.player.state is 'run':
+			return ('cats','doors')
+		elif self.player.state is 'carry':
+			return ('windows',)
 
 class Player(AnimatedGameEntity):
 	ANIMATION_LIST = AnimationList({
@@ -368,6 +409,7 @@ class Player(AnimatedGameEntity):
 	def spawn(self):
 		AnimatedGameEntity.spawn(self)
 		self.game.player = self
+		self.state = 'run'
 
 	def update(self,dt):
 		self.update_direction( )
