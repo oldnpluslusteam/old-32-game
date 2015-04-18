@@ -143,6 +143,7 @@ class MineCat(AnimatedGameEntity):
 	def spawn(self):
 		AnimatedGameEntity.spawn(self)
 		self.set_animation('Run')
+		self.game.add_entity_of_class('cats',self)
 
 	def velocity(self):
 		return math.sqrt(self.vx*self.vx + self.vy*self.vY)
@@ -188,6 +189,15 @@ class MineCat(AnimatedGameEntity):
 		#анимка, звук поедания яблока или надо будет переопределить для каждого червя
 		pass
 
+def get_level(i):
+	return {
+		0: {
+			'entities': [
+				{'class':Player,'kwargs':{'x':0,'y':0}},
+				{'class':Window,'kwargs':{'x':0,'y':MyGame.LIMIT_BOTTOM,'angle':0}}
+			]
+		}
+	}[i];
 
 class MyGame(Game):
 	LIMIT_LEFT = -400
@@ -211,7 +221,6 @@ class MyGame(Game):
 		if eclass not in self.containers:
 			self.containers[eclass] = []
 		self.containers[eclass].append(entity)
-		self.addEntity(entity)
 
 	def find_closest_of_classes(self,x,y,classes):
 		for cl in classes:
@@ -233,9 +242,9 @@ class MyGame(Game):
 	def init_entities(self):
 		self.player = Player( )
 		self.addEntity(self.player)
-		self.add_entity_of_class('cats',MineCat(50,50))
-		self.add_entity_of_class('cats',MineCat(200,50))
-		self.add_entity_of_class('doors',Door(100,100))
+
+		self.addEntity(MineCat(50,50,1))
+		# self.add_entity_of_class('cats',MineCat(50,50,1))
 
 	def handle_key_press(self,key):
 		if key in Player.DIR_KEYS:
