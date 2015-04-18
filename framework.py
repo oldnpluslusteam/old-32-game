@@ -749,6 +749,16 @@ class EuclidianWorldSpace:
 	def translate_point(self,x,y):
 		return x,y
 
+class LimitedWorldSpace:
+	def __init__(self,left,right,top,bottom):
+		self.left = left
+		self.right = right
+		self.top = top
+		self.bottom = bottom
+
+	def translate_point(self,x,y):
+		return min(self.right,max(self.left,x)),min(self.top,max(self.bottom,y))
+
 # 
 class TorrWrapWorldSpace:
 	def __init__(self,left,right,bottom,top):
