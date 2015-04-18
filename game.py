@@ -62,8 +62,11 @@ class GameScreen(AppScreen):
 
 class Door(SpriteGameEntity):
 	SPRITE = 'rc/img/Door.png'
+	next_id = 0
 	def __init__(self, sx, sy):
 		SpriteGameEntity.__init__(self, Door.SPRITE)
+		self.id = Door.next_id
+		Door.next_id += 1
 		self.x = sx
 		self.y = sy
 
@@ -76,7 +79,10 @@ class Door(SpriteGameEntity):
 
 class Window(SpriteGameEntity):
 	SPRITE = 'rc/img/Window.png'
+	next_id = 0
 	def __init__(self, sx, sy):
+		self.id = Window.next_id
+		Window.next_id += 1
 		SpriteGameEntity.__init__(self, Window.SPRITE)
 		self.x = sx
 		self.y = sy
@@ -90,6 +96,7 @@ class Window(SpriteGameEntity):
 	
 
 class MineCat(AnimatedGameEntity):
+	next_id = 0
 	# цифры из предыдущего проекта
 	ANIMATION_LIST = AnimationList({
 			'Stand':[
@@ -106,8 +113,11 @@ class MineCat(AnimatedGameEntity):
 			]
 		}
 	)
-	def __init__(self,sx,sy,id):
+	def __init__(self,sx,sy,id=None):
 		AnimatedGameEntity.__init__(self, MineCat.ANIMATION_LIST)
+		if id is None:
+			id = MineCat.next_id
+			MineCat.next_id+=1
 		self.id = id
 		self.x = sx
 		self.y = sy
@@ -215,7 +225,7 @@ class MyGame(Game):
 						if min_distance > dist:
 							min_distance = dist
 					if dist < 100:
-						GAME_CONSOLE.write('nearest entity: ', ent.__class__.__name__, 'dist:', dist)
+						GAME_CONSOLE.write('nearest: ', ent.id, 'dist:', dist)
 			# если класса нет
 			else:
 				GAME_CONSOLE.write('no entity of this type: ',cl)
@@ -223,7 +233,9 @@ class MyGame(Game):
 	def init_entities(self):
 		self.player = Player( )
 		self.addEntity(self.player)
-		self.add_entity_of_class('cats',MineCat(50,50,1))
+		self.add_entity_of_class('cats',MineCat(50,50))
+		self.add_entity_of_class('cats',MineCat(200,50))
+		self.add_entity_of_class('doors',Door(100,100))
 
 	def handle_key_press(self,key):
 		if key in Player.DIR_KEYS:
