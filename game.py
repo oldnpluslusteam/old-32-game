@@ -60,6 +60,7 @@ class GameScreen(AppScreen):
 
 class Door(SpriteGameEntity):
 	SPRITE = 'rc/img/Door.png'
+
 	def __init__(self,x,y):
 		SpriteGameEntity.__init__(self, Door.SPRITE)
 		self.x = x
@@ -74,7 +75,9 @@ class Door(SpriteGameEntity):
 
 class Window(SpriteGameEntity):
 	SPRITE = 'rc/img/Window.png'
-	def __init__(self,x,y):
+
+	def __init__(self,x,y,id):
+		self.id = id
 		SpriteGameEntity.__init__(self, Window.SPRITE)
 		self.x = x
 		self.y = y
@@ -88,6 +91,7 @@ class Window(SpriteGameEntity):
 	
 
 class MineCat(AnimatedGameEntity):
+	next_id = 0
 	# цифры из предыдущего проекта
 	ANIMATION_LIST = AnimationList({
 			'Stand':[
@@ -104,8 +108,12 @@ class MineCat(AnimatedGameEntity):
 			]
 		}
 	)
+
 	def __init__(self,x,y,id):
 		AnimatedGameEntity.__init__(self, MineCat.ANIMATION_LIST)
+		if id is None:
+			id = MineCat.next_id
+			MineCat.next_id+=1
 		self.id = id
 		self.x = x
 		self.y = y
@@ -183,7 +191,7 @@ def get_level(i):
 			'entities': [
 				{'class':Player,'kwargs':{'x':0,'y':0}},
 				{'class':MineCat,'kwargs':{'x':100,'y':200,'id':0}},
-				{'class':Window,'kwargs':{'x':0,'y':MyGame.LIMIT_BOTTOM}}
+				{'class':Window,'kwargs':{'x':0,'y':MyGame.LIMIT_BOTTOM,'id':0}}
 			]
 		}
 	}[i];
@@ -221,7 +229,7 @@ class MyGame(Game):
 						if min_distance > dist:
 							min_distance = dist
 					if dist < 100:
-						GAME_CONSOLE.write('nearest entity: ', ent.__class__.__name__, 'dist:', dist)
+						GAME_CONSOLE.write('nearest: ', ent.id, 'dist:', dist)
 			# если класса нет
 			else:
 				GAME_CONSOLE.write('no entity of this type: ',cl)
