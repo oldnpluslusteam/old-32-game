@@ -33,6 +33,10 @@ class GameScreen(AppScreen):
 
 		self.addLayer(GameWorldLayer(self.game,self.camera))
 
+		tl = TipLayer(self.camera,self.game.player,0,20)
+		tl.setText("I'm player")
+		self.addLayer(tl)
+
 		GAME_CONSOLE.write('Game screen created.')
 
 
@@ -57,6 +61,28 @@ class GameScreen(AppScreen):
 
 	def on_mouse_press(self,x,y,button,modifiers):
 		pass
+
+class TipLayer(GUITextItemLayer):
+	def __init__(self,camera,entity,mar_x=0,mar_y=0):
+		GUITextItemLayer.__init__(self,0.0,0.0)
+		self.entity = entity
+		self.camera = camera
+		self.mar_x,self.mar_y = mar_x,mar_y
+
+	def update_coordinates(self):
+		cx,cy = self.entity.x - self.camera.focus_x,self.entity.y - self.camera.focus_y
+		cx,cy = cx * self.camera.scale,cy * self.camera.scale
+		cx,cy = cx + 0.5 * self.camera.width,cy + 0.5 * self.camera.height
+		cx,cy = int(cx),int(cy)
+		self.offset_x = cx + self.mar_x
+		self.offset_y = cy + self.mar_y
+		# self.update_rect( )
+		self.on_resize(0,0)
+
+	def draw(self):
+		self.update_coordinates( )
+		GUITextItemLayer.draw(self)
+
 
 class Door(SpriteGameEntity):
 	SPRITE = 'rc/img/Door.png'
