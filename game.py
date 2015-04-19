@@ -4,6 +4,8 @@
 from framework import *
 import math, random
 
+GAME_CONSOLE.visible = False
+
 @ScreenClass('STARTUP')
 class StartupScreen(AppScreen):
 	def __init__(self):
@@ -22,6 +24,8 @@ class EndScreen(AppScreen):
 		AppScreen.__init__(self)
 
 		self.addLayer(StaticBackgroundLauer(img,'scale'))
+
+		self.addLayer(GUITextItemLayer(text='PRESS ANY KEY TO RESTART',offset_x=0,offset_y=0))
 
 		PlayMusic(music,musmod)
 
@@ -49,6 +53,7 @@ class GameScreen(AppScreen):
 
 		self.game = MyGame(tl)
 		self.game.unpause( )
+		self.game.screen = self
 
 		self.addLayer(GameWorldLayer(self.game,self.camera))
 		self.addLayer(tl)
@@ -72,9 +77,9 @@ class GameScreen(AppScreen):
 		#GAME_CONSOLE.write('SSC:Key down:',KEY.symbol_string(key),'(',key,') [+',KEY.modifiers_string(mod),']')
 		self.game.handle_key_press(key)
 		if key == KEY.P:
-			PlayMusic('rc/snd/ld32cello.ogg',mode='stop')
+			self.game.ending('good')
 		if key == KEY.O:
-			PlayMusic('rc/snd/ld32full.ogg',mode='loop')
+			self.game.ending('bad')
 		if key == KEY.L:
 			self.set_next('ENDING','rc/img/ending-good.png','rc/snd/ld32cello.ogg','stop')
 
@@ -84,6 +89,13 @@ class GameScreen(AppScreen):
 
 	def on_mouse_press(self,x,y,button,modifiers):
 		pass
+
+	def do_end(self,typ):
+		SET = {
+			'good'	: {'img':'rc/img/ending-good.png','music':'rc/snd/ld32full.ogg','musmod':'loop'},
+			'bad'	: {'img':'rc/img/ending-bad.png','music':'rc/snd/ld32cello.ogg','musmod':'stop'}
+		}
+		self.set_next('ENDING',**SET[typ])
 
 	def exit(self):
 		self.game.pause()
@@ -150,6 +162,8 @@ class Door(GameEntity):
 			self.choose_key( )
 			self.game.selector.set_entity(self) 
 			GAME_CONSOLE.write('Door openness:',str(self.openness))
+			if self.openness >= 10:
+				self.game.ending('good')
 
 	def get_tip_text(self):
 		return 'Press [{}] to open door'.format(KEY.symbol_string(self.key))
@@ -343,8 +357,7 @@ class MineCat(AnimatedGameEntity):
 		self.end_update_coordinates()
 
 	def boom(self):
-		GAME_CONSOLE.write('BOOOM')
-		print 'BOOOM'
+		self.game.ending('bad')
 
 	def spawn(self):
 		AnimatedGameEntity.spawn(self)
@@ -465,6 +478,9 @@ class MyGame(Game):
 			self.containers[eclass] = []
 		self.containers[eclass].append(entity)
 
+	def ending(self,t):
+		self.screen.do_end(t)
+
 	def remove_entity_of_class(self,eclass,entity):
 		if (eclass in self.containers) and (entity in self.containers[eclass]):
 			self.containers[eclass].remove(entity)
@@ -512,8 +528,6 @@ class MyGame(Game):
 class Player(AnimatedGameEntity):
 	ANIMATION_LIST = AnimationList({
 		'run':[
-			# {'img':'rc/img/player.png','t':0.1,'anchor':'center','rect':(0,0,128,128)},
-			# {'img':'rc/img/player.png','t':0.1,'anchor':'center','rect':(256,0,128,128)}
 			{'img':'rc/img/pl/0.png','t':0.1,'anchor':'center','rect':(0,0,128,128)},
 			{'img':'rc/img/pl/1.png','t':0.1,'anchor':'center','rect':(0,0,128,128)},
 			{'img':'rc/img/pl/3.png','t':0.1,'anchor':'center','rect':(0,0,128,128)},
