@@ -508,38 +508,3 @@ class Player(AnimatedGameEntity):
 		self.game.reset_use_tip()
 		self.game.set_use_tip(self, 'Use arrows')
 
-class MiniGame(GameEntity):
-		DIFFICULTY_LOW = list('qwer')
-		DIFFICULTY_MIDDLE = list('qwerasdf')
-		DIFFICULTY_HIGH = list('qwerasdfzxcv')
-		TIME = 10
-		# Mode = 0 - endless, 1 - timer
-
-		def __init__(self,difficulty,mode=0):
-			GameEntity.__init__(self)
-			self.difficulty = difficulty
-			self.mode = mode
-			self.task = None
-
-		def generate(self):
-			return random.choice(self.difficulty)
-
-		def start_timer(self):
-			self.timer = MiniGame.TIME
-
-		def wait(self):
-			if self.task is None:
-				self.task = self.generate()
-
-
-
-
-		def update(self,dt):
-			if self.timer == 0:
-				return
-			if self.timer > 0:
-				self.timer -= dt
-			else:
-				pass
-				# Поражение в игре
-
