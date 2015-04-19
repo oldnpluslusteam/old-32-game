@@ -94,6 +94,7 @@ class Door(SpriteGameEntity):
 		SpriteGameEntity.__init__(self, Door.SPRITE)
 		self.x = x
 		self.y = y
+		self.openness = 0
 
 	def spawn(self):
 		SpriteGameEntity.spawn(self)
@@ -102,6 +103,14 @@ class Door(SpriteGameEntity):
 	def on_collision(self, other):
 		# обработка столкновений
 		pass
+
+	def handle_key_press(self,key):
+		if key == KEY.W:
+			self.openness += 0.1
+			GAME_CONSOLE.write('Door openness:',str(self.openness))
+
+	def get_tip_text(self):
+		return 'Press [W] to open door'
 
 class Window(SpriteGameEntity):
 	SPRITE = 'rc/img/Window.png'
@@ -182,6 +191,8 @@ class Selector(SpriteGameEntity):
 
 	def handle_key_press(self,key):
 		GAME_CONSOLE.write('SKd:',str(key))
+		if self.entity != None and 'handle_key_press' in dir(self.entity):
+			self.entity.handle_key_press(key)
 
 class MineCat(AnimatedGameEntity):
 	next_id = 0
@@ -210,19 +221,25 @@ class MineCat(AnimatedGameEntity):
 		self.scale = 1
 		self.window = None
 		self.is_visiable = False
-		#установка начальной скорости типа
 		self.setup_task()
-		print 'cat created'
+		self.caught = False
 		
 
 	def update(self,dt):
-		self.timer -= dt
-		if self.timer <= 0:
-			self.setup_task()
-		k=400
-		self.affectAngleVelocity(dt)	
-		self.x += self.vx*dt*k
-		self.y += self.vy*dt*k
+		if self.caught:
+			self.game.selector.set_entity(self) # to update tip text
+			self.x,self.y = self.game.player.x,self.game.player.y
+			self.rotation = self.game.player.rotation
+			self.x += math.sin(self.rotation * math.pi / 180.0) * 30
+			self.y += math.cos(self.rotation * math.pi / 180.0) * 30
+		else:
+			self.timer -= dt
+			if self.timer <= 0:
+				self.setup_task()
+			k=400
+			self.affectAngleVelocity(dt)	
+			self.x += self.vx*dt*k
+			self.y += self.vy*dt*k
 		self.end_update_coordinates()
 
 	def spawn(self):
@@ -263,23 +280,23 @@ class MineCat(AnimatedGameEntity):
 		dy = ent.y - self.y
 		return math.sqrt(dx*dx + dy*dy)-entity.radius
 
-	#действие столкновения
-	def on_collision(self, ent, dx, dy):
-		pass
-		# elif ent.__class__.__name__ == 'Worm':
-		# 	#скалярное проиведение
-		# 	scalarMul = self.vx*ent.vx + self.vy*ent.vy
-		# 	self.vx = self.vx - 2 * dx * scalarMul
-		# 	self.vy = self.vy - 2 * dy * scalarMul
-		# 	ent.vx = ent.vx - 2 * dx * scalarMul
-		# 	ent.vy = ent.vy - 2 * dy * scalarMul
-		# 	self.lastTurn = 0
-		# 	ent.lastTurn = 0
-
 	def destroy(self):
 		self.is_visiable = False
 		self.game.remove_entity_of_class('cats',self)
 		#self.window.cats.remove(self)
+
+	def handle_key_press(self,key):
+		if not self.caught:
+			if key == KEY.W:
+				self.caught = True;
+		else:
+			pass
+
+	def get_tip_text(self):
+		if not self.caught:
+			return 'Press [W] to catch cat'
+		else:
+			return ''
 
 def get_level(i):
 	return {
@@ -288,6 +305,7 @@ def get_level(i):
 				{'class':Player,'kwargs':{'x':0,'y':0}},
 				{'class':MineCat,'kwargs':{'x':100,'y':200,'id':0}},
 				{'class':Window,'kwargs':{'x':0,'y':MyGame.LIMIT_BOTTOM,'id':0}},
+				{'class':Door,'kwargs':{'x':0,'y':MyGame.LIMIT_TOP}},
 				{'class':Selector,'kwargs':{}}
 			]
 		}
@@ -347,7 +365,7 @@ class MyGame(Game):
 
 	def update(self,dt):
 		Game.update(self,dt)
-		selected = self.find_closest_of_classes(self.player.x,self.player.y,('cats',),100.0,self.player)
+		selected = self.find_closest_of_classes(self.player.x,self.player.y,('cats','doors'),100.0,self.player)
 		if selected != self.selector.entity:
 			self.selector.set_entity(selected)
 
