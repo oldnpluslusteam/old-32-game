@@ -25,6 +25,10 @@ class EndScreen(AppScreen):
 
 		PlayMusic(snd,sndmod)
 
+	def  on_key_press(self,key):
+		if key == KEY.ESC:
+			pass
+
 @ScreenClass('STARTUP')
 @ScreenClass('GAME')
 class GameScreen(AppScreen):
@@ -101,14 +105,13 @@ class TipLayer(GUITextItemLayer):
 		self.update_coordinates( )
 		GUITextItemLayer.draw(self)
 
-class Door(SpriteGameEntity):
-	SPRITE = 'rc/img/Door.png'
-	KEYS = [KEY.Q,KEY.W,KEY.E,KEY.R,
-			KEY.A,KEY.S,KEY.D,KEY.F,
-			KEY.Z,KEY.X,KEY.C,KEY.V]
+
+class Door(GameEntity):
+	KEYS = (KEY.Q,KEY.W,KEY.E)
+
 
 	def __init__(self,x,y):
-		SpriteGameEntity.__init__(self, Door.SPRITE)
+		GameEntity.__init__(self)
 		self.x = x
 		self.y = y
 
@@ -119,8 +122,12 @@ class Door(SpriteGameEntity):
 		self.end_update_coordinates()
 
 	def spawn(self):
-		SpriteGameEntity.spawn(self)
+		GameEntity.spawn(self)
 		self.game.add_entity_of_class('doors',self)
+
+	def update(self,dt):
+		if self.game.selector.entity == self:
+			self.game.selector.set_entity(self)
 
 	def on_collision(self, other):
 		# обработка столкновений
@@ -140,12 +147,10 @@ class Door(SpriteGameEntity):
 	def get_tip_text(self):
 		return 'Press [{}] to open door'.format(KEY.symbol_string(self.key))
 
-class Window(SpriteGameEntity):
-	SPRITE = 'rc/img/Window.png'
-
+class Window(GameEntity):
 	def __init__(self,x,y,cat_limit = 1,id=None):
 		self.id = id
-		SpriteGameEntity.__init__(self, Window.SPRITE)
+		GameEntity.__init__(self)
 		self.x = x
 		self.y = y
 		self.cat_limit = cat_limit 
@@ -153,7 +158,7 @@ class Window(SpriteGameEntity):
 		self.setup_timer()
 
 	def spawn(self):
-		SpriteGameEntity.spawn(self)
+		GameEntity.spawn(self)
 		self.game.add_entity_of_class('windows',self)
 		self.initial_spawn_cats()
 		self.end_update_coordinates( )
@@ -193,6 +198,7 @@ class Window(SpriteGameEntity):
 		return 'Window'
 
 	def handle_key_press(self,key):
+		# выбрасывание кота в окно
 		if key == KEY.E:
 			self.game.player.caught_cat.destroy()
 
@@ -293,7 +299,6 @@ class MineCat(AnimatedGameEntity):
 
 	def update(self,dt):
 		if not self.is_visiable:
-			GAME_CONSOLE.write('ogogogsebe nevidimaya hyunya')
 			self.x = self.y = 9999
 			return
 		if self.mine_timer > 0:
@@ -368,7 +373,6 @@ class MineCat(AnimatedGameEntity):
 		self.game.player.caught_cat = None
 		self.is_visiable = False
 		self.game.remove_entity_of_class('cats',self)
-		self.x = self.y = 9999
 		#self.window.cats.remove(self)
 
 	def handle_key_press(self,key):
@@ -411,7 +415,6 @@ def get_level(i):
 		0: {
 			'entities': [
 				{'class':Player,'kwargs':{'x':0,'y':0}},
-				{'class':MineCat,'kwargs':{'x':100,'y':200,'id':0}},
 				{'class':Window,'kwargs':{'x':MyGame.LIMIT_LEFT,'y':-250,'id':0}},
 				{'class':Window,'kwargs':{'x':MyGame.LIMIT_RIGHT,'y':330,'id':0}},
 				{'class':Door,'kwargs':{'x':270,'y':MyGame.LIMIT_BOTTOM}},
