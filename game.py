@@ -76,12 +76,12 @@ class GameScreen(AppScreen):
 	def on_key_press(self,key,mod):
 		#GAME_CONSOLE.write('SSC:Key down:',KEY.symbol_string(key),'(',key,') [+',KEY.modifiers_string(mod),']')
 		self.game.handle_key_press(key)
-		if key == KEY.P:
-			self.game.ending('good')
-		if key == KEY.O:
-			self.game.ending('bad')
-		if key == KEY.L:
-			self.set_next('ENDING','rc/img/ending-good.png','rc/snd/ld32cello.ogg','stop')
+		# if key == KEY.P:
+		# 	self.game.ending('good')
+		# if key == KEY.O:
+		# 	self.game.ending('bad')
+		# if key == KEY.L:
+		# 	self.set_next('ENDING','rc/img/ending-good.png','rc/snd/ld32cello.ogg','stop')
 
 	def on_key_release(self,key,mod):
 		#GAME_CONSOLE.write('SSC:Key down:',KEY.symbol_string(key),'(',key,') [+',KEY.modifiers_string(mod),']')
