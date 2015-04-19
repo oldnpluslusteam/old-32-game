@@ -25,14 +25,14 @@ class EndScreen(AppScreen):
 
 		self.addLayer(StaticBackgroundLauer(img,'scale'))
 
-		self.addLayer(GUITextItemLayer(text='PRESS ANY KEY TO RESTART',offset_x=0,offset_y=0))
+		self.addLayer(GUITextItemLayer(text='PRESS ENTER TO RESTART',offset_x=0,offset_y=0))
 
 		PlayMusic(music,musmod)
 
 	def  on_key_press(self,key,mod):
 		if key == KEY.ESCAPE:
 			self.need_exit = True
-		else:
+		elif key == KEY.ENTER:
 			self.set_next('GAME')
 
 @ScreenClass('STARTUP')
@@ -158,6 +158,9 @@ class Door(GameEntity):
 
 	def handle_key_press(self,key):
 		if key == self.key:
+			snd = random.choice(['rc/snd/door1.wav','rc/snd/door3.wav','rc/snd/door4.mp3'])
+			print '!!!!!!!!!!!!!!!!!',snd
+			PlayStaticSound(snd)
 			self.openness += 0.1
 			self.choose_key( )
 			self.game.selector.set_entity(self) 
@@ -166,7 +169,7 @@ class Door(GameEntity):
 				self.game.ending('good')
 
 	def get_tip_text(self):
-		return 'Press [{}] to open door'.format(KEY.symbol_string(self.key))
+		return 'Press [{}] to hit door [{}%]'.format(KEY.symbol_string(self.key),int(self.openness*100.0/10.0))
 
 class Window(GameEntity):
 	def __init__(self,x,y,cat_limit = 1,id=None):
