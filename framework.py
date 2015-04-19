@@ -183,6 +183,12 @@ class GameConsole:
 				l.draw( )
 			self.fps_display.draw( )
 
+class FakeGameConsole:
+	def __init__(self):
+		pass
+	def write(self,*args):
+		pass
+
 # Не самая лучшая идея создавать её прямо здесь,
 # но по-другому оно не хотело работать.
 GAME_CONSOLE = GameConsole( )

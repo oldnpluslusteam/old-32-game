@@ -18,16 +18,18 @@ class StartupScreen(AppScreen):
 
 @ScreenClass('ENDING')
 class EndScreen(AppScreen):
-	def __init__(self,img,snd,sndmod,text=''):
+	def __init__(self,img,music,musmod,text=''):
 		AppScreen.__init__(self)
 
 		self.addLayer(StaticBackgroundLauer(img,'scale'))
 
-		PlayMusic(snd,sndmod)
+		PlayMusic(music,musmod)
 
-	def  on_key_press(self,key):
-		if key == KEY.ESC:
-			pass
+	def  on_key_press(self,key,mod):
+		if key == KEY.ESCAPE:
+			self.need_exit = True
+		else:
+			self.set_next('GAME')
 
 @ScreenClass('STARTUP')
 @ScreenClass('GAME')
@@ -73,6 +75,8 @@ class GameScreen(AppScreen):
 			PlayMusic('rc/snd/ld32cello.ogg',mode='stop')
 		if key == KEY.O:
 			PlayMusic('rc/snd/ld32full.ogg',mode='loop')
+		if key == KEY.L:
+			self.set_next('ENDING','rc/img/ending-good.png','rc/snd/ld32cello.ogg','stop')
 
 	def on_key_release(self,key,mod):
 		#GAME_CONSOLE.write('SSC:Key down:',KEY.symbol_string(key),'(',key,') [+',KEY.modifiers_string(mod),']')
@@ -80,6 +84,9 @@ class GameScreen(AppScreen):
 
 	def on_mouse_press(self,x,y,button,modifiers):
 		pass
+
+	def exit(self):
+		self.game.pause()
 
 class TipLayer(GUITextItemLayer):
 	def __init__(self,camera,entity,mar_x=0,mar_y=0):
@@ -493,11 +500,15 @@ class MyGame(Game):
 class Player(AnimatedGameEntity):
 	ANIMATION_LIST = AnimationList({
 		'run':[
-			{'img':'rc/img/player.png','t':0.1,'anchor':'center','rect':(0,0,128,128)},
-			{'img':'rc/img/player.png','t':0.1,'anchor':'center','rect':(256,0,128,128)}
+			# {'img':'rc/img/player.png','t':0.1,'anchor':'center','rect':(0,0,128,128)},
+			# {'img':'rc/img/player.png','t':0.1,'anchor':'center','rect':(256,0,128,128)}
+			{'img':'rc/img/pl/0.png','t':0.1,'anchor':'center','rect':(0,0,128,128)},
+			{'img':'rc/img/pl/1.png','t':0.1,'anchor':'center','rect':(0,0,128,128)},
+			{'img':'rc/img/pl/3.png','t':0.1,'anchor':'center','rect':(0,0,128,128)},
+			{'img':'rc/img/pl/4.png','t':0.1,'anchor':'center','rect':(0,0,128,128)}
 		],
 		'idle':[
-			{'img':'rc/img/player.png','t':0,'anchor':'center','rect':(128,0,128,128)}
+			{'img':'rc/img/pl/stand.png','t':0,'anchor':'center','rect':(0,0,128,128)}
 		]
 	})
 
