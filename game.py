@@ -89,12 +89,14 @@ class TipLayer(GUITextItemLayer):
 
 class Door(SpriteGameEntity):
 	SPRITE = 'rc/img/Door.png'
+	KEYS = (KEY.Q,KEY.W,KEY.E)
 
 	def __init__(self,x,y):
 		SpriteGameEntity.__init__(self, Door.SPRITE)
 		self.x = x
 		self.y = y
 		self.openness = 0
+		self.choose_key( )
 
 	def spawn(self):
 		SpriteGameEntity.spawn(self)
@@ -104,13 +106,17 @@ class Door(SpriteGameEntity):
 		# обработка столкновений
 		pass
 
+	def choose_key(self):
+		self.key = random.choice(Door.KEYS)
+
 	def handle_key_press(self,key):
-		if key == KEY.W:
+		if key == self.key:
 			self.openness += 0.1
+			self.choose_key( )
 			GAME_CONSOLE.write('Door openness:',str(self.openness))
 
 	def get_tip_text(self):
-		return 'Press [W] to open door'
+		return 'Press [{0}] to open door'.format(KEY.symbol_string(self.key))
 
 class Window(SpriteGameEntity):
 	SPRITE = 'rc/img/Window.png'
@@ -198,6 +204,27 @@ class Selector(SpriteGameEntity):
 		if self.entity != None and 'handle_key_press' in dir(self.entity):
 			self.entity.handle_key_press(key)
 
+class MineSignal(SpriteGameEntity):
+	def __init__(self, cat):
+		SpriteGameEntity.__init__(self,'rc/img/signal.png')
+		self.cat = cat
+
+	def update(self, dt):
+		self.x, self.y = self.cat.x, self.cat.y
+		self.set_scale()
+		self.sprite.visible = self.cat.is_visiable
+		self.end_update_coordinates()
+
+	def set_scale(self):
+		def pila(x,p):
+			p = min(max(p+0.2,0.1),2.0)
+			m = x % p
+			if m > 0.5 * p:
+				return 1.0 - (m-0.5*p) / p
+			return 0
+		self.scale = pila(self.game.time,self.cat.mine_timer * 0.5) * 0.7
+
+
 class MineCat(AnimatedGameEntity):
 	next_id = 0
 	# цифры из предыдущего проекта
@@ -208,6 +235,9 @@ class MineCat(AnimatedGameEntity):
 			]
 		}
 	)
+	MG_KEYS=[KEY.Q,KEY.W,KEY.E,KEY.R,
+			KEY.A,KEY.S,KEY.D,KEY.F,
+			KEY.Z,KEY.X,KEY.C,KEY.V]
 
 	def __init__(self,x,y,id):
 		AnimatedGameEntity.__init__(self, MineCat.ANIMATION_LIST)
@@ -221,19 +251,36 @@ class MineCat(AnimatedGameEntity):
 		self.vy = 0.0
 		self.angle = 0
 		self.angVelocity = 0
-		self.timer = 30
+		self.timer = 3
 		self.scale = 1
 		self.window = None
 		self.is_visiable = False
+		self.mine_timer = 30
+
+		self.MG_timer = 0
+		self.MG_key = None
+		self.MG_in = False
+		self.MG_key_pressed = False
+
 		self.setup_task()
 
 	def update(self,dt):
+		if self.mine_timer > 0:
+			self.mine_timer -= dt
+		else:
+			self.boom()
 		if self.is_caught():
 			self.game.selector.set_entity(self) # to update tip text
 			self.x,self.y = self.game.player.x,self.game.player.y
 			self.rotation = self.game.player.rotation
 			self.x += math.sin(self.rotation * math.pi / 180.0) * 30
 			self.y += math.cos(self.rotation * math.pi / 180.0) * 30
+			if self.MG_timer > 0:
+				self.MG_timer -= dt
+			elif not self.MG_key_pressed:
+				self.game.player.caught_cat = None
+			else:
+				self.start_minigame()
 		else:
 			self.timer -= dt
 			if self.timer <= 0:
@@ -244,8 +291,12 @@ class MineCat(AnimatedGameEntity):
 			self.y += self.vy*dt*k
 		self.end_update_coordinates()
 
+	def boom(self):
+		GAME_CONSOLE.write('BOOOM')
+		print 'BOOOM'
+
 	def spawn(self):
-		pass
+		self.game.addEntity(MineSignal(self),2)
 
 	def throw(self):
 		# print 'cat spawned'
@@ -290,14 +341,24 @@ class MineCat(AnimatedGameEntity):
 		if not self.any_caught():
 			if key == KEY.W:
 				self.game.player.caught_cat = self
+				self.start_minigame()
 		else:
 			self.game.player.caught_cat.handle_minigame_key_press(key)
 
+	def start_minigame(self):
+		self.MG_timer = 1
+		self.MG_key_pressed = False
+		self.MG_key = random.choice(MineCat.MG_KEYS)
+
 	def handle_minigame_key_press(self,key):
-		pass
+		if key == self.MG_key:
+			self.MG_key_pressed = True
 
 	def get_minigame_tip(self):
-		return 'do something'
+		if self.MG_key_pressed:
+			return ' '
+		else:
+			return 'Press [{0}] to hold cat'.format(KEY.symbol_string(self.MG_key))
 
 	def any_caught(self):
 		return self.game.player.caught_cat != None
