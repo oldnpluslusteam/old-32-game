@@ -98,11 +98,13 @@ class TipLayer(GUITextItemLayer):
 
 class Door(SpriteGameEntity):
 	SPRITE = 'rc/img/Door.png'
+	RADIUS = 50
 
 	def __init__(self,x,y):
 		SpriteGameEntity.__init__(self, Door.SPRITE)
 		self.x = x
 		self.y = y
+		self.radius = Door.RADIUS
 
 	def spawn(self):
 		SpriteGameEntity.spawn(self)
@@ -114,6 +116,7 @@ class Door(SpriteGameEntity):
 
 class Window(SpriteGameEntity):
 	SPRITE = 'rc/img/Window.png'
+	RADIUS = 50
 
 	def __init__(self,x,y,cat_limit = 1,id=None):
 		self.id = id
@@ -124,6 +127,7 @@ class Window(SpriteGameEntity):
 		self.cats = []
 		self.alive_cats = 0
 		self.setup_timer()
+		self.radius = Window.RADIUS
 
 	def spawn(self):
 		SpriteGameEntity.spawn(self)
@@ -168,6 +172,7 @@ class Window(SpriteGameEntity):
 
 class MineCat(AnimatedGameEntity):
 	next_id = 0
+	RADIUS = 50
 	# цифры из предыдущего проекта
 	ANIMATION_LIST = AnimationList({
 			'Run':[
@@ -189,6 +194,7 @@ class MineCat(AnimatedGameEntity):
 		self.timer = 30
 		self.scale = 1
 		self.window = None
+		self.radius = MineCat.RADIUS
 		#установка начальной скорости типа
 		self.setup_task()
 		print 'cat created'
@@ -329,29 +335,42 @@ class MyGame(Game):
 			self.containers[eclass].remove(entity)
 
 	def find_closest_of_classes(self,x,y,classes):
+		# min_distance = None
+		# for cl in classes:
+		# 	if cl in self.containers:
+		# 		for ent in self.containers[cl]:
+		# 			if not ent.sprite.visible:
+		# 				continue
+		# 			dist = math.sqrt(math.pow((ent.x-x),2) + math.pow((ent.y - y),2))
+		# 			if min_distance is None:
+		# 				min_distance = dist
+		# 				closest = ent
+		# 			else:
+		# 				if min_distance > dist:
+		# 					min_distance = dist
+		# 					closest = ent
+		# 	# если класса нет
+		# 	else:
+		# 		return None
+		# if min_distance < 100:
+		# 		# GAME_CONSOLE.write('nearest: ', ent.id, 'dist:', dist)
+		# 		return closest
+#-------------------------------------------------------
+		min_distance = None
+		closest = None
 		for cl in classes:
 			if cl in self.containers:
-				min_distance = None
 				for ent in self.containers[cl]:
 					if not ent.sprite.visible:
 						continue
 					dist = math.sqrt(math.pow((ent.x-x),2) + math.pow((ent.y - y),2))
-					if min_distance is None:
+					if (min_distance is None) or (min_distance > dist):
 						min_distance = dist
-						num = ent
-					else:
-						if min_distance > dist:
-							min_distance = dist
-							num = ent
-					#ЭТО СДЕЛАНО ПЛОХО.
-					if dist < 100:
-						# GAME_CONSOLE.write('nearest: ', ent.id, 'dist:', dist)
-						return num
-					else:
-						return None
-			# если класса нет
+						closest = ent
 			else:
-				return None
+				continue
+				# class doesnt exists -> next class in container or gtfo
+		return closest, min_distance
 
 	def init_entities(self,levelinfo):
 		ents = levelinfo['entities']
@@ -368,11 +387,16 @@ class MyGame(Game):
 
 	def update(self,dt):
 		Game.update(self,dt)
-
-		closesd = self.find_closest_of_classes(self.player.x,self.player.y,self.interactive_items_list())
+		self.select_around(*self.find_closest_of_classes(self.player.x,self.player.y,self.interactive_items_list()))
+		#closest,dist = self.find_closest_of_classes(self.player.x,self.player.y,self.interactive_items_list())
 		# выделение близжайшего объекта
-		if closesd is not None:
-			closesd.select()
+		#if (closest is not None):
+		#	print closest.id
+		#	closest.select()
+
+	def select_around(self,entity,dist):
+		if (entity is not None) and ((self.player.radius + entity.radius) < dist):
+			entity.select()
 
 	def interactive_items_list(self):
 		if self.player.state is 'run':
@@ -398,6 +422,7 @@ class Player(AnimatedGameEntity):
 	]
 
 	DIR_KEYS = [KEY.LEFT,KEY.RIGHT,KEY.UP,KEY.DOWN]
+	RADIUS = 50
 
 	def __init__(self,x,y):
 		AnimatedGameEntity.__init__(self,Player.ANIMATION_LIST)
@@ -411,6 +436,8 @@ class Player(AnimatedGameEntity):
 
 		self.dirx = 0.0
 		self.diry = 0.0
+
+		self.radius = Player.RADIUS
 
 		self.dirkeys = {k:0 for k in Player.DIR_KEYS}
 
