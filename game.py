@@ -29,13 +29,14 @@ class GameScreen(AppScreen):
 		self.camera.focus_x = 0
 		self.camera.focus_y = 0
 
-		self.addLayer(StaticBackgroundLauer('rc/img/1Kx1Kbg.png','scale'))
+		self.addLayer(StaticBackgroundLauer('rc/img/background.png','scale'))
 
 		self.addLayer(GameWorldLayer(self.game,self.camera))
 
 		tl = TipLayer(self.camera,self.game.player,0,20)
-		tl.setText("I'm player")
+		tl.setText("")
 		self.addLayer(tl)
+		self.game.tip_layer = tl
 
 		GAME_CONSOLE.write('Game screen created.')
 
@@ -149,7 +150,24 @@ class Window(SpriteGameEntity):
 	def setup_timer(self):
 		self.timer = 2
 		#self.timer = random.random()*10+20
-	
+
+class Selector(SpriteGameEntity):
+	def __init__(self):
+		SpriteGameEntity.__init__(self,'rc/img/selector.png')
+		self.entity = None
+
+	def spawn(self):
+		SpriteGameEntity.spawn(self)
+		self.entity = self.game.player
+		self.game.selector = self
+
+	def update(self,dt):
+		if self.entity != None:
+			self.x,self.y = self.entity.x,self.entity.y
+
+		self.rotation += dt * 180.0
+
+		self.end_update_coordinates( )
 
 class MineCat(AnimatedGameEntity):
 	next_id = 0
@@ -256,7 +274,8 @@ def get_level(i):
 			'entities': [
 				{'class':Player,'kwargs':{'x':0,'y':0}},
 				{'class':MineCat,'kwargs':{'x':100,'y':200,'id':0}},
-				{'class':Window,'kwargs':{'x':0,'y':MyGame.LIMIT_BOTTOM,'id':0}}
+				{'class':Window,'kwargs':{'x':0,'y':MyGame.LIMIT_BOTTOM,'id':0}},
+				{'class':Selector,'kwargs':{}}
 			]
 		}
 	}[i];
