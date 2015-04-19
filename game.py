@@ -180,6 +180,9 @@ class Selector(SpriteGameEntity):
 
 		self.end_update_coordinates( )
 
+	def handle_key_press(self,key):
+		GAME_CONSOLE.write('SKd:',str(key))
+
 class MineCat(AnimatedGameEntity):
 	next_id = 0
 	# цифры из предыдущего проекта
@@ -336,6 +339,7 @@ class MyGame(Game):
 	def handle_key_press(self,key):
 		if key in Player.DIR_KEYS:
 			self.player.dirkeys[key] = 1
+		self.selector.handle_key_press(key)
 
 	def handle_key_release(self,key):
 		if key in Player.DIR_KEYS:
