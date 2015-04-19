@@ -288,6 +288,31 @@ class MineCat(AnimatedGameEntity):
 		#self.game.add_entity_of_class('cats',self)
 		#GAME_CONSOLE.write('кот отпущен','yra')
 
+class Selector(SpriteGameEntity):
+	SPRITE = 'rc/img/selector.png'
+
+	def __init__(self):
+		SpriteGameEntity.__init__(self, Selector.SPRITE)
+		self.target = None
+		self.scale = 3.0
+
+	def spawn(self):
+		SpriteGameEntity.spawn(self)
+		self.end_update_coordinates()
+
+	def update(self, dt):
+		self.end_update_coordinates()
+
+	def select_around(self,entity,dist):
+		if (entity is not None) and ((self.game.player.radius + entity.radius) > dist):
+			self.target = entity
+		else:
+			self.target = self.game.player
+		self.x = self.target.x
+		self.y = self.target.y
+		self.target.select()
+
+
 def get_level(i):
 	return {
 		0: {
@@ -335,27 +360,6 @@ class MyGame(Game):
 			self.containers[eclass].remove(entity)
 
 	def find_closest_of_classes(self,x,y,classes):
-		# min_distance = None
-		# for cl in classes:
-		# 	if cl in self.containers:
-		# 		for ent in self.containers[cl]:
-		# 			if not ent.sprite.visible:
-		# 				continue
-		# 			dist = math.sqrt(math.pow((ent.x-x),2) + math.pow((ent.y - y),2))
-		# 			if min_distance is None:
-		# 				min_distance = dist
-		# 				closest = ent
-		# 			else:
-		# 				if min_distance > dist:
-		# 					min_distance = dist
-		# 					closest = ent
-		# 	# если класса нет
-		# 	else:
-		# 		return None
-		# if min_distance < 100:
-		# 		# GAME_CONSOLE.write('nearest: ', ent.id, 'dist:', dist)
-		# 		return closest
-#-------------------------------------------------------
 		min_distance = None
 		closest = None
 		for cl in classes:
@@ -373,6 +377,8 @@ class MyGame(Game):
 		return closest, min_distance
 
 	def init_entities(self,levelinfo):
+		self.selector = Selector()
+		self.addEntity(self.selector)
 		ents = levelinfo['entities']
 		for ed in ents:
 			self.addEntity(ed['class'](**(ed['kwargs'])))
@@ -387,16 +393,12 @@ class MyGame(Game):
 
 	def update(self,dt):
 		Game.update(self,dt)
-		self.select_around(*self.find_closest_of_classes(self.player.x,self.player.y,self.interactive_items_list()))
+		self.selector.select_around(*self.find_closest_of_classes(self.player.x,self.player.y,self.interactive_items_list()))
 		#closest,dist = self.find_closest_of_classes(self.player.x,self.player.y,self.interactive_items_list())
 		# выделение близжайшего объекта
 		#if (closest is not None):
 		#	print closest.id
 		#	closest.select()
-
-	def select_around(self,entity,dist):
-		if (entity is not None) and ((self.player.radius + entity.radius) < dist):
-			entity.select()
 
 	def interactive_items_list(self):
 		if self.player.state is 'run':
@@ -501,3 +503,8 @@ class Player(AnimatedGameEntity):
 		dx = ent.x - self.x
 		dy = ent.y - self.y
 		return math.sqrt(dx*dx + dy*dy)-entity.radius
+
+	def select(self):
+		self.game.reset_use_tip()
+		self.game.set_use_tip(self, 'Use arrows')
+
