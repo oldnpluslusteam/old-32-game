@@ -22,8 +22,6 @@ class GameScreen(AppScreen):
 	def __init__(self):
 		AppScreen.__init__(self)
 
-		self.game = MyGame( )
-		self.game.unpause( )
 		self.camera = Camera( )
 
 		self.camera.focus_x = 0
@@ -31,12 +29,14 @@ class GameScreen(AppScreen):
 
 		self.addLayer(StaticBackgroundLauer('rc/img/background.png','scale'))
 
-		self.addLayer(GameWorldLayer(self.game,self.camera))
-
-		tl = TipLayer(self.camera,self.game.player,0,20)
+		tl = TipLayer(self.camera,None,0,20)
 		tl.setText("")
+
+		self.game = MyGame(tl)
+		self.game.unpause( )
+
+		self.addLayer(GameWorldLayer(self.game,self.camera))
 		self.addLayer(tl)
-		self.game.tip_layer = tl
 
 		GAME_CONSOLE.write('Game screen created.')
 
@@ -65,12 +65,15 @@ class GameScreen(AppScreen):
 
 class TipLayer(GUITextItemLayer):
 	def __init__(self,camera,entity,mar_x=0,mar_y=0):
-		GUITextItemLayer.__init__(self,0.0,0.0)
+		GUITextItemLayer.__init__(self,0.0,0.0,font_size=16)
 		self.entity = entity
 		self.camera = camera
 		self.mar_x,self.mar_y = mar_x,mar_y
 
 	def update_coordinates(self):
+		if self.entity == None:
+			return
+
 		cx,cy = self.entity.x - self.camera.focus_x,self.entity.y - self.camera.focus_y
 		cx,cy = cx * self.camera.scale,cy * self.camera.scale
 		cx,cy = cx + 0.5 * self.camera.width,cy + 0.5 * self.camera.height
@@ -83,7 +86,6 @@ class TipLayer(GUITextItemLayer):
 	def draw(self):
 		self.update_coordinates( )
 		GUITextItemLayer.draw(self)
-
 
 class Door(SpriteGameEntity):
 	SPRITE = 'rc/img/Door.png'
@@ -158,12 +160,21 @@ class Selector(SpriteGameEntity):
 
 	def spawn(self):
 		SpriteGameEntity.spawn(self)
-		self.entity = self.game.player
 		self.game.selector = self
+		self.game.tip_layer.entity = self
+
+	def set_entity(self,ent):
+		if ent == None or 'get_tip_text' not in dir(ent):
+			self.game.tip_layer.setText('')
+		else:
+			self.game.tip_layer.setText(ent.get_tip_text())
+		self.entity = ent
 
 	def update(self,dt):
-		if self.entity != None:
-			self.x,self.y = self.entity.x,self.entity.y
+		if self.entity == None:
+			return
+
+		self.x,self.y = self.entity.x,self.entity.y
 
 		self.rotation += dt * 180.0
 
@@ -213,8 +224,7 @@ class MineCat(AnimatedGameEntity):
 
 	def spawn(self):
 		pass
-		
-		
+
 
 	def throw(self):
 		print 'cat spawned'
@@ -232,7 +242,7 @@ class MineCat(AnimatedGameEntity):
 
 	def setup_task(self):
 		#нормальное распределение М[],сигма
-		self.angVelocity = (random.normalvariate(0,60))
+		self.angVelocity = (random.normalvariate(0,90))
 		self.angVelocityRad = self.angVelocity / 180 * math.pi
 		self.timer = random.random()*3+0.5
 
@@ -287,10 +297,12 @@ class MyGame(Game):
 	LIMIT_BOTTOM = -400
 	WORLD_WIDTH = LIMIT_RIGHT - LIMIT_LEFT
 	WORLD_HEIGHT = LIMIT_TOP - LIMIT_BOTTOM
-	def __init__(self):
+	def __init__(self,tip_layer):
 		Game.__init__(self)
 
 		self.containers = {}
+
+		self.tip_layer = tip_layer
 
 		self.world_space = LimitedWorldSpace(MyGame.LIMIT_LEFT,MyGame.LIMIT_RIGHT,MyGame.LIMIT_TOP,MyGame.LIMIT_BOTTOM)
 
@@ -305,22 +317,16 @@ class MyGame(Game):
 		if eclass in self.containers:
 			self.containers[eclass].remove(entity)
 
-	def find_closest_of_classes(self,x,y,classes):
+	def find_closest_of_classes(self,x,y,classes,max_dist,default):
+		best = default
+		best_dist = max_dist
 		for cl in classes:
-			if cl in self.containers:
-				min_distance = None
-				for ent in self.containers[cl]:
-					dist = math.sqrt(math.pow((ent.x-x),2) + math.pow((ent.y - y),2))
-					if min_distance is None:
-						min_distance = dist
-					else:
-						if min_distance > dist:
-							min_distance = dist
-					if dist < 100:
-						GAME_CONSOLE.write('nearest: ', ent.id, 'dist:', dist)
-			# если класса нет
-			else:
-				pass
+			for ent in self.containers.get(cl,[]):
+				dist = math.sqrt(math.pow((ent.x-x),2) + math.pow((ent.y - y),2))
+				if dist < best_dist:
+					best_dist = dist
+					best = ent
+		return best
 
 	def init_entities(self,levelinfo):
 		ents = levelinfo['entities']
@@ -337,7 +343,9 @@ class MyGame(Game):
 
 	def update(self,dt):
 		Game.update(self,dt)
-		self.find_closest_of_classes(self.player.x,self.player.y,('cats',))
+		selected = self.find_closest_of_classes(self.player.x,self.player.y,('cats',),100.0,self.player)
+		if selected != self.selector.entity:
+			self.selector.set_entity(selected)
 
 class Player(AnimatedGameEntity):
 	ANIMATION_LIST = AnimationList({
@@ -390,7 +398,7 @@ class Player(AnimatedGameEntity):
 		else:
 			self.diry = 0
 
-		k = 200.0
+		k = 400.0
 		angle = Player.DIR_ANGLE_MAP[int(1-self.diry)][int(1+self.dirx)]
 
 		if angle != None:
@@ -410,6 +418,9 @@ class Player(AnimatedGameEntity):
 	def spawn(self):
 		AnimatedGameEntity.spawn(self)
 		self.game.player = self
+
+	def get_tip_text(self):
+		return 'Use arrow keys'
 
 	def update(self,dt):
 		self.update_direction( )
