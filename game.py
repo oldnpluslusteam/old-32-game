@@ -162,7 +162,7 @@ class Window(GameEntity):
 		self.y = y
 		self.cat_limit = cat_limit 
 		self.cats = []
-		self.setup_timer()
+		self.timer = 3
 
 	def spawn(self):
 		GameEntity.spawn(self)
@@ -175,11 +175,11 @@ class Window(GameEntity):
 		pass
 
 	def update(self, dt):
-		if self.timer > 0:
-			self.timer -= dt
-		elif (len([cat for cat in self.cats if cat.is_visiable]) < self.cat_limit):
-			self.setup_timer()
-			self.spawn_cat()
+		if (len([cat for cat in self.cats if cat.is_visiable]) < self.cat_limit):
+			if self.timer > 0:
+				self.timer -= dt
+			else:
+				self.spawn_cat()
 			# print 'cat spawned'
 		# else:
 			# print len([cat for cat in self.cats if cat.is_visiable])
@@ -197,6 +197,7 @@ class Window(GameEntity):
 				c.x = self.x
 				c.y = self.y
 				c.throw()
+				self.setup_timer()
 				break
 
 	def get_tip_text(self):
@@ -210,7 +211,8 @@ class Window(GameEntity):
 			self.game.player.caught_cat.destroy()
 
 	def setup_timer(self):
-		self.timer = 2
+		self.timer = 10
+		#not test:
 		#self.timer = random.random()*10+20
 
 class Selector(SpriteGameEntity):
@@ -304,6 +306,12 @@ class MineCat(AnimatedGameEntity):
 
 		self.setup_task()
 
+	def hide(self):
+		self.sprite.visible = False
+		self.x = 9999
+	def show(self):
+		self.sprite.visible = True
+
 	def update(self,dt):
 		if not self.is_visiable:
 			self.x = self.y = 9999
@@ -341,12 +349,15 @@ class MineCat(AnimatedGameEntity):
 	def spawn(self):
 		AnimatedGameEntity.spawn(self)
 		self.game.addEntity(MineSignal(self),2)
+		self.hide()
 
 	def throw(self):
 		# print 'cat spawned'
 		self.is_visiable = True
+		self.mine_timer = 30
 		self.set_animation('Run')
 		self.game.add_entity_of_class('cats',self)
+		self.show()
 
 	def velocity(self):
 		return math.sqrt(self.vx*self.vx + self.vy*self.vY)
@@ -380,6 +391,7 @@ class MineCat(AnimatedGameEntity):
 		self.game.player.caught_cat = None
 		self.is_visiable = False
 		self.game.remove_entity_of_class('cats',self)
+		self.hide()
 		#self.window.cats.remove(self)
 
 	def handle_key_press(self,key):
@@ -422,7 +434,7 @@ def get_level(i):
 		0: {
 			'entities': [
 				{'class':Player,'kwargs':{'x':0,'y':0}},
-				{'class':Window,'kwargs':{'x':MyGame.LIMIT_LEFT,'y':-250,'id':0}},
+				{'class':Window,'kwargs':{'x':MyGame.LIMIT_LEFT,'y':-250,'id':0,'cat_limit':3}},
 				{'class':Window,'kwargs':{'x':MyGame.LIMIT_RIGHT,'y':330,'id':0}},
 				{'class':Door,'kwargs':{'x':270,'y':MyGame.LIMIT_BOTTOM}},
 				{'class':Selector,'kwargs':{}}
