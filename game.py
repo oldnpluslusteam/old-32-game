@@ -16,6 +16,15 @@ class StartupScreen(AppScreen):
 	def on_key_press(self,key,mod):
 		GAME_CONSOLE.write('SSC:Key down:',KEY.symbol_string(key),'(',key,') [+',KEY.modifiers_string(mod),']')
 
+@ScreenClass('ENDING')
+class EndScreen(AppScreen):
+	def __init__(self,img,snd,sndmod,text=''):
+		AppScreen.__init__(self)
+
+		self.addLayer(StaticBackgroundLauer(img,'scale'))
+
+		PlayMusic(snd,sndmod)
+
 @ScreenClass('STARTUP')
 @ScreenClass('GAME')
 class GameScreen(AppScreen):
@@ -40,13 +49,14 @@ class GameScreen(AppScreen):
 
 		GAME_CONSOLE.write('Game screen created.')
 
+		PlayMusic('rc/snd/ld32full.ogg',mode='loop')
 
 	def on_resize(self,width,height):
 		AppScreen.on_resize(self,width,height)
 
 		self.camera.set_size(width,height)
 
-		self.camera.scale = 0.5 * min(float(width) / float(MyGame.WORLD_WIDTH),float(height) / float(MyGame.WORLD_HEIGHT))
+		self.camera.scale = 0.6 * min(float(width) / float(MyGame.WORLD_WIDTH),float(height) / float(MyGame.WORLD_HEIGHT))
 
 	def on_mouse_scroll(self,x,y,sx,sy):
 		# self.camera.scale *= 2 ** (sy*0.02)
@@ -55,6 +65,10 @@ class GameScreen(AppScreen):
 	def on_key_press(self,key,mod):
 		#GAME_CONSOLE.write('SSC:Key down:',KEY.symbol_string(key),'(',key,') [+',KEY.modifiers_string(mod),']')
 		self.game.handle_key_press(key)
+		if key == KEY.P:
+			PlayMusic('rc/snd/ld32cello.ogg',mode='stop')
+		if key == KEY.O:
+			PlayMusic('rc/snd/ld32full.ogg',mode='loop')
 
 	def on_key_release(self,key,mod):
 		#GAME_CONSOLE.write('SSC:Key down:',KEY.symbol_string(key),'(',key,') [+',KEY.modifiers_string(mod),']')
@@ -142,6 +156,7 @@ class Window(SpriteGameEntity):
 		SpriteGameEntity.spawn(self)
 		self.game.add_entity_of_class('windows',self)
 		self.initial_spawn_cats()
+		self.end_update_coordinates( )
 
 	def on_collision(self, other):
 		# обработка столкновений
@@ -396,18 +411,20 @@ def get_level(i):
 		0: {
 			'entities': [
 				{'class':Player,'kwargs':{'x':0,'y':0}},
-				{'class':Window,'kwargs':{'x':0,'y':MyGame.LIMIT_BOTTOM,'id':0}},
-				{'class':Door,'kwargs':{'x':0,'y':MyGame.LIMIT_TOP}},
+				{'class':MineCat,'kwargs':{'x':100,'y':200,'id':0}},
+				{'class':Window,'kwargs':{'x':MyGame.LIMIT_LEFT,'y':-250,'id':0}},
+				{'class':Window,'kwargs':{'x':MyGame.LIMIT_RIGHT,'y':330,'id':0}},
+				{'class':Door,'kwargs':{'x':270,'y':MyGame.LIMIT_BOTTOM}},
 				{'class':Selector,'kwargs':{}}
 			]
 		}
 	}[i];
 
 class MyGame(Game):
-	LIMIT_LEFT = -400
-	LIMIT_RIGHT = 400
-	LIMIT_TOP = 400
-	LIMIT_BOTTOM = -400
+	LIMIT_LEFT = -500
+	LIMIT_RIGHT = 500
+	LIMIT_TOP = 500
+	LIMIT_BOTTOM = -500
 	WORLD_WIDTH = LIMIT_RIGHT - LIMIT_LEFT
 	WORLD_HEIGHT = LIMIT_TOP - LIMIT_BOTTOM
 	def __init__(self,tip_layer):
