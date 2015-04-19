@@ -139,9 +139,9 @@ class Window(SpriteGameEntity):
 		elif (len([cat for cat in self.cats if cat.is_visiable]) < self.cat_limit):
 			self.setup_timer()
 			self.spawn_cat()
-			print 'cat spawned'
-		else:
-			print len([cat for cat in self.cats if cat.is_visiable])
+			# print 'cat spawned'
+		# else:
+			# print len([cat for cat in self.cats if cat.is_visiable])
 
 	def initial_spawn_cats(self):
 		for i in range(self.cat_limit):
@@ -157,6 +157,11 @@ class Window(SpriteGameEntity):
 				c.y = self.y
 				c.throw()
 				break
+
+	def get_tip_text(self):
+		if self.game.player.caught_cat != None:
+			return 'Press [W] to throw cat'
+		return 'Window'
 
 	def setup_timer(self):
 		self.timer = 2
@@ -190,7 +195,6 @@ class Selector(SpriteGameEntity):
 		self.end_update_coordinates( )
 
 	def handle_key_press(self,key):
-		GAME_CONSOLE.write('SKd:',str(key))
 		if self.entity != None and 'handle_key_press' in dir(self.entity):
 			self.entity.handle_key_press(key)
 
@@ -222,11 +226,9 @@ class MineCat(AnimatedGameEntity):
 		self.window = None
 		self.is_visiable = False
 		self.setup_task()
-		self.caught = False
-		
 
 	def update(self,dt):
-		if self.caught:
+		if self.is_caught():
 			self.game.selector.set_entity(self) # to update tip text
 			self.x,self.y = self.game.player.x,self.game.player.y
 			self.rotation = self.game.player.rotation
@@ -245,9 +247,8 @@ class MineCat(AnimatedGameEntity):
 	def spawn(self):
 		pass
 
-
 	def throw(self):
-		print 'cat spawned'
+		# print 'cat spawned'
 		AnimatedGameEntity.spawn(self)
 		self.is_visiable = True
 		self.set_animation('Run')
@@ -286,17 +287,29 @@ class MineCat(AnimatedGameEntity):
 		#self.window.cats.remove(self)
 
 	def handle_key_press(self,key):
-		if not self.caught:
+		if not self.any_caught():
 			if key == KEY.W:
-				self.caught = True;
+				self.game.player.caught_cat = self
 		else:
-			pass
+			self.game.player.caught_cat.handle_minigame_key_press(key)
+
+	def handle_minigame_key_press(self,key):
+		pass
+
+	def get_minigame_tip(self):
+		return 'do something'
+
+	def any_caught(self):
+		return self.game.player.caught_cat != None
+
+	def is_caught(self):
+		return self.game.player.caught_cat == self
 
 	def get_tip_text(self):
-		if not self.caught:
+		if not self.any_caught():
 			return 'Press [W] to catch cat'
 		else:
-			return ''
+			return self.game.player.caught_cat.get_minigame_tip()
 
 def get_level(i):
 	return {
@@ -365,7 +378,16 @@ class MyGame(Game):
 
 	def update(self,dt):
 		Game.update(self,dt)
-		selected = self.find_closest_of_classes(self.player.x,self.player.y,('cats','doors'),100.0,self.player)
+		selected = self.player
+
+		if self.player.caught_cat != None:
+			selected = self.find_closest_of_classes(self.player.x,self.player.y,('windows',),100.0,self.player)
+
+		if selected == self.player:
+			selected = self.find_closest_of_classes(self.player.x,self.player.y,('cats',),100.0,self.player)
+			if selected == self.player:
+				selected = self.find_closest_of_classes(self.player.x,self.player.y,('doors',),100.0,self.player)
+
 		if selected != self.selector.entity:
 			self.selector.set_entity(selected)
 
@@ -400,6 +422,8 @@ class Player(AnimatedGameEntity):
 
 		self.dirx = 0.0
 		self.diry = 0.0
+
+		self.caught_cat = None
 
 		self.dirkeys = {k:0 for k in Player.DIR_KEYS}
 
