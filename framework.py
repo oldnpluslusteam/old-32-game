@@ -630,7 +630,6 @@ class GameWorldLayer(Layer):
 
 #
 STATIC_SOUND_SOURCES = {}
-MUSIC_SOUND_SOURCES = {}
 MUSIC_PLAYER = None
 
 # Предзагрузить звук и/или назначить ему псевдоним.
@@ -657,28 +656,30 @@ def PlayStaticSound(name):
 		return None
 
 # Играет музыку
-def PlayMusic(name):
-	if name in MUSIC_SOUND_SOURCES:
-		if MUSIC_SOUND_SOURCES[name] != None:
-			MUSIC_PLAYER.queue(MUSIC_SOUND_SOURCES[name])
-			if MUSIC_PLAYER.playing:
-				MUSIC_PLAYER.next( )
-			else:
-				MUSIC_PLAYER.play( )
-		else:
+def PlayMusic(name,mode=None):
+	global MUSIC_PLAYER
+	eos_action = (({
+		'loop':pyglet.media.Player.EOS_LOOP,
+		'stop':pyglet.media.Player.EOS_PAUSE})[mode])
+
+	if MUSIC_PLAYER != None:
+		try:
+			src = pyglet.media.load(filename=name,streaming=True)
+		except Exception as e:
+			GAME_CONSOLE.write("Couldn't load sound file: ",name)
+			print e
+			return
+		MUSIC_PLAYER.eos_action = eos_action;
+		MUSIC_PLAYER.queue(src)
+		if MUSIC_PLAYER.playing:
 			MUSIC_PLAYER.next( )
-	# Создаём плеер, если его ещё нет
-	if MUSIC_PLAYER == None:
-		MUSIC_PLAYER = pyglet.media.player( )
-		MUSIC_PLAYER.eos_action = pyglet.media.player.EOS_LOOP
+		else:
+			MUSIC_PLAYER.play( )
+		return
+	else:
+		MUSIC_PLAYER = pyglet.media.Player( )
 	#
-	try:
-		MUSIC_SOUND_SOURCES[name] = pyglet.media.load(filename=name,streaming=True)
-	except Exception as e:
-		MUSIC_SOUND_SOURCES[name] = None
-		GAME_CONSOLE.write("Couldn't load sound file: ",name)
-		print e
-	PlayMusic(name)
+	PlayMusic(name,mode)
 
 
 ###############################################################################
