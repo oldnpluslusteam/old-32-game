@@ -125,7 +125,8 @@ class DoorTip(SpriteGameEntity):
 		self.end_update_coordinates( )
 
 class Door(GameEntity):
-	KEYS = (KEY.A,KEY.W,KEY.S,KEY.D)
+	#KEYS = (KEY.A,KEY.S,KEY.D,KEY.F,KEY.Z,KEY.X,KEY.C,KEY.V,KEY.G)
+	KEYS = (KEY.Q, KEY.W, KEY.E, KEY.R, KEY.T, KEY.Y, KEY.U, KEY.I, KEY.O, KEY.P, KEY.A, KEY.S, KEY.D, KEY.F, KEY.G, KEY.H, KEY.J, KEY.K, KEY.L, KEY.Z, KEY.X, KEY.C, KEY.V, KEY.B, KEY.N, KEY.M)
 
 
 	def __init__(self,x,y):
@@ -298,7 +299,8 @@ class MineCat(AnimatedGameEntity):
 			]
 		}
 	)
-	MG_KEYS=[KEY.W,KEY.A,KEY.S,KEY.D]
+	MG_KEYS=(KEY.Q, KEY.W, KEY.E, KEY.R, KEY.T, KEY.A, KEY.S, KEY.D, KEY.F, KEY.G, KEY.Z, KEY.X, KEY.C, KEY.V, KEY.B)
+
 
 	def __init__(self,x,y,id):
 		AnimatedGameEntity.__init__(self, MineCat.ANIMATION_LIST)
@@ -415,7 +417,7 @@ class MineCat(AnimatedGameEntity):
 			self.game.player.caught_cat.handle_minigame_key_press(key)
 
 	def start_minigame(self):
-		self.MG_timer = 2
+		self.MG_timer = 1.3
 		self.MG_key_pressed = False
 		self.MG_key = random.choice(MineCat.MG_KEYS)
 
