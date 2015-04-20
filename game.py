@@ -239,6 +239,8 @@ class Window(GameEntity):
 		# выбрасывание кота в окно
 		if key == KEY.E:
 			self.game.player.caught_cat.destroy()
+			self.game.player.caught_cat = None
+			PlayStaticSound('rc/snd/cat_throw.wav') # ВЫБРОС КОТА !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
 
 	def setup_timer(self):
 		self.timer = 10
