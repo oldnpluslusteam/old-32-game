@@ -394,7 +394,7 @@ class MineCat(AnimatedGameEntity):
 	def throw(self):
 		self.choose_catch_key( )
 		self.is_visiable = True
-		self.mine_timer = 60
+		self.mine_timer = 43
 		self.set_animation('Run')
 		self.game.add_entity_of_class('cats',self)
 		self.show()
