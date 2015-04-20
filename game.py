@@ -82,6 +82,7 @@ class GameScreen(AppScreen):
 			'bad'	: {'img':'rc/img/ending-bad.png','music':'rc/snd/ld32bad.ogg','musmod':'stop'}
 		}
 		self.set_next('ENDING',**SET[typ])
+		GAME_CONSOLE.write('SCR.ENDING:',typ)
 
 	def exit(self):
 		self.game.pause()
@@ -275,13 +276,17 @@ class MineSignal(SpriteGameEntity):
 		self.end_update_coordinates()
 
 	def set_scale(self):
+		if not self.sprite.visible:
+			return
 		def pila(x,p):
-			p = min(max(p+0.2,0.1),2.0)
+			p = min(max(p+0.6,0.5),2.0)
 			m = x % p
 			if m > 0.5 * p:
 				return 1.0 - (m-0.5*p) / p
 			return 0
-		self.scale = pila(self.game.time,self.cat.mine_timer * 0.5) * 0.7
+		new_scale = pila(self.game.time,self.cat.mine_timer * 0.1) * 0.7
+		self.cat.peep = (self.scale == 0 and new_scale != 0)
+		self.scale = new_scale
 
 class MineCat(AnimatedGameEntity):
 	next_id = 0
@@ -321,6 +326,8 @@ class MineCat(AnimatedGameEntity):
 
 		self.setup_task()
 
+		self.peep = False
+
 	def hide(self):
 		self.sprite.visible = False
 		self.x = 9999
@@ -333,7 +340,7 @@ class MineCat(AnimatedGameEntity):
 			return
 		if self.mine_timer > 0:
 			self.mine_timer -= dt
-		else:
+		elif self.mine_timer < 0:
 			self.boom()
 		if self.is_caught():
 			self.game.selector.set_entity(self) # to update tip text
@@ -357,6 +364,8 @@ class MineCat(AnimatedGameEntity):
 		self.end_update_coordinates()
 
 	def boom(self):
+		self.mine_timer = 0
+		GAME_CONSOLE.write('CAT.boom')
 		PlayStaticSound('rc/snd/explosion_inside.mp3')
 		self.game.ending('bad')
 
@@ -525,6 +534,20 @@ class MyGame(Game):
 
 		if selected != self.selector.entity:
 			self.selector.set_entity(selected)
+
+		self.do_peep( )
+
+	def do_peep(self):
+		cat = None
+		t = 100000
+		for c in self.containers.get('cats',[]):
+			if c.mine_timer < t:
+				t = c.mine_timer
+				cat = c
+		if cat != None:
+			GAME_CONSOLE.write('min t:',str(t))
+			if cat.peep:
+				PlayStaticSound('rc/snd/peep.wav')
 
 class Player(AnimatedGameEntity):
 	ANIMATION_LIST = AnimationList({

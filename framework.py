@@ -236,15 +236,16 @@ class MainWindow(pyglet.window.Window):
 	def dispatch_event(self, event_type, *args):
 		if event_type in ('on_key_press','on_key_release','on_mouse_drag','on_mouse_enter','on_mouse_leave','on_mouse_motion','on_mouse_press','on_mouse_release','on_mouse_scroll'):
 			self.cur_screen.dispatch_event(event_type,*args)
+		super(MainWindow,self).dispatch_event(event_type,*args)
+
+	# Отрисовка содержимого окна
+	def on_draw(self):
 		if 'cur_screen' in dir(self) and self.cur_screen != None:
 			if self.cur_screen.need_exit:
 				self.close( )
 			elif self.cur_screen.next != None:
 				self.change_screen(self.cur_screen.next)
-		super(MainWindow,self).dispatch_event(event_type,*args)
 
-	# Отрисовка содержимого окна
-	def on_draw(self):
 		# Очистить окно
 		self.clear( )
 
