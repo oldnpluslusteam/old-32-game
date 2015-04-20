@@ -338,6 +338,7 @@ class MineCat(AnimatedGameEntity):
 		self.MG_key_pressed = False
 
 		self.setup_task()
+		self.choose_catch_key()
 
 		self.peep = False
 
@@ -365,6 +366,7 @@ class MineCat(AnimatedGameEntity):
 				self.MG_timer -= dt
 			elif not self.MG_key_pressed:
 				self.game.player.caught_cat = None
+				PlayStaticSound('rc/snd/cat_escape.wav') # ПОБЕГ КОТА !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
 			else:
 				self.start_minigame()
 		else:
@@ -388,8 +390,9 @@ class MineCat(AnimatedGameEntity):
 		self.hide()
 
 	def throw(self):
+		self.choose_catch_key( )
 		self.is_visiable = True
-		self.mine_timer = 30
+		self.mine_timer = 60
 		self.set_animation('Run')
 		self.game.add_entity_of_class('cats',self)
 		self.show()
@@ -421,7 +424,7 @@ class MineCat(AnimatedGameEntity):
 
 	def handle_key_press(self,key):
 		if not self.any_caught():
-			if key == KEY.W:
+			if key == self.catch_key:
 				self.game.player.caught_cat = self
 				self.start_minigame()
 		else:
@@ -451,9 +454,13 @@ class MineCat(AnimatedGameEntity):
 	def is_caught(self):
 		return self.game.player.caught_cat == self
 
+	def choose_catch_key(self):
+		self.catch_key = random.choice(MineCat.MG_KEYS)
+
 	def get_tip_text(self):
 		if not self.any_caught():
-			return 'Press [W] to catch cat'
+			# self.choose_catch_key( )
+			return 'Press [{0}] to catch cat'.format(KEY.symbol_string(self.catch_key))
 		else:
 			return self.game.player.caught_cat.get_minigame_tip()
 
