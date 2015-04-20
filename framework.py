@@ -236,6 +236,7 @@ class MainWindow(pyglet.window.Window):
 	def dispatch_event(self, event_type, *args):
 		if event_type in ('on_key_press','on_key_release','on_mouse_drag','on_mouse_enter','on_mouse_leave','on_mouse_motion','on_mouse_press','on_mouse_release','on_mouse_scroll'):
 			self.cur_screen.dispatch_event(event_type,*args)
+		if 'cur_screen' in dir(self) and self.cur_screen != None:
 			if self.cur_screen.need_exit:
 				self.close( )
 			elif self.cur_screen.next != None:
@@ -505,8 +506,8 @@ class GUIVerticalProgressBarItemLayer(GUIItemLayer):
 
 ### Слой рисующий элемент гуя-текст.
 class GUITextItemLayer(GUIItemLayer):
-	def __init__(self,offset_x,offset_y,text = '',font_name='Courier New',font_size=36,bg_texture=None):
-		label = pyglet.text.Label(text,x=0,y=0,font_name=font_name,font_size=font_size)
+	def __init__(self,offset_x,offset_y,text = '',font_name='Courier New',font_size=36,bg_texture=None,**kwargs):
+		label = pyglet.text.Label(text,x=0,y=0,font_name=font_name,font_size=font_size,**kwargs)
 		GUIItemLayer.__init__(self,offset_x,offset_y,
 			label.content_width,label.content_height)
 		self.text_label = label

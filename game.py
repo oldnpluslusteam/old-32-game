@@ -45,8 +45,7 @@ class GameScreen(AppScreen):
 
 		self.camera.focus_x = 0
 		self.camera.focus_y = 0
-
-		self.addLayer(StaticBackgroundLauer('rc/img/background.png','scale'))
+		self.camera.scale = 0.5
 
 		tl = TipLayer(self.camera,None,0,20)
 		tl.setText("")
@@ -54,6 +53,7 @@ class GameScreen(AppScreen):
 		self.game = MyGame(tl)
 		self.game.unpause( )
 		self.game.screen = self
+		self.game.camera = self.camera
 
 		self.addLayer(GameWorldLayer(self.game,self.camera))
 		self.addLayer(tl)
@@ -67,24 +67,10 @@ class GameScreen(AppScreen):
 
 		self.camera.set_size(width,height)
 
-		self.camera.scale = 0.6 * min(float(width) / float(MyGame.WORLD_WIDTH),float(height) / float(MyGame.WORLD_HEIGHT))
-
-	def on_mouse_scroll(self,x,y,sx,sy):
-		# self.camera.scale *= 2 ** (sy*0.02)
-		pass
-
 	def on_key_press(self,key,mod):
-		#GAME_CONSOLE.write('SSC:Key down:',KEY.symbol_string(key),'(',key,') [+',KEY.modifiers_string(mod),']')
 		self.game.handle_key_press(key)
-		# if key == KEY.P:
-		# 	self.game.ending('good')
-		# if key == KEY.O:
-		# 	self.game.ending('bad')
-		# if key == KEY.L:
-		# 	self.set_next('ENDING','rc/img/ending-good.png','rc/snd/ld32cello.ogg','stop')
 
 	def on_key_release(self,key,mod):
-		#GAME_CONSOLE.write('SSC:Key down:',KEY.symbol_string(key),'(',key,') [+',KEY.modifiers_string(mod),']')
 		self.game.handle_key_release(key)
 
 	def on_mouse_press(self,x,y,button,modifiers):
@@ -92,8 +78,8 @@ class GameScreen(AppScreen):
 
 	def do_end(self,typ):
 		SET = {
-			'good'	: {'img':'rc/img/ending-good.png','music':'rc/snd/ld32full.ogg','musmod':'loop'},
-			'bad'	: {'img':'rc/img/ending-bad.png','music':'rc/snd/ld32cello.ogg','musmod':'stop'}
+			'good'	: {'img':'rc/img/ending-good.png','music':'rc/snd/ld32cello.ogg','musmod':'stop'},
+			'bad'	: {'img':'rc/img/ending-bad.png','music':'rc/snd/ld32bad.ogg','musmod':'stop'}
 		}
 		self.set_next('ENDING',**SET[typ])
 
@@ -102,7 +88,7 @@ class GameScreen(AppScreen):
 
 class TipLayer(GUITextItemLayer):
 	def __init__(self,camera,entity,mar_x=0,mar_y=0):
-		GUITextItemLayer.__init__(self,0.0,0.0,font_size=16)
+		GUITextItemLayer.__init__(self,0.0,0.0,font_size=16,bold=True)
 		self.entity = entity
 		self.camera = camera
 		self.mar_x,self.mar_y = mar_x,mar_y
@@ -124,9 +110,21 @@ class TipLayer(GUITextItemLayer):
 		self.update_coordinates( )
 		GUITextItemLayer.draw(self)
 
+class DoorTip(SpriteGameEntity):
+	def __init__(self,x,y,a,f):
+		SpriteGameEntity.__init__(self,'rc/img/arrow.png')
+		self.x0 = x
+		self.y0 = y
+		self.a = a
+		self.f = f
+
+	def update(self,dt):
+		self.x = self.x0
+		self.y = self.y0 + self.a * math.sin(self.f*self.game.time)
+		self.end_update_coordinates( )
 
 class Door(GameEntity):
-	KEYS = (KEY.Q,KEY.W,KEY.E)
+	KEYS = (KEY.A,KEY.W,KEY.S,KEY.D)
 
 
 	def __init__(self,x,y):
@@ -144,6 +142,10 @@ class Door(GameEntity):
 		GameEntity.spawn(self)
 		self.game.add_entity_of_class('doors',self)
 
+		t = DoorTip(self.x,self.y + 100,20,10)
+		self.tip = t
+		self.game.addEntity(t)
+
 	def update(self,dt):
 		if self.game.selector.entity == self:
 			self.game.selector.set_entity(self)
@@ -154,19 +156,20 @@ class Door(GameEntity):
 
 	def choose_key(self):
 		self.key = random.choice(Door.KEYS)
-		GAME_CONSOLE.write('Key choosed:',KEY.symbol_string(self.key))
 
 	def handle_key_press(self,key):
-		if key == self.key:
-			snd = random.choice(['rc/snd/door1.wav','rc/snd/door3.wav','rc/snd/door4.mp3'])
-			print '!!!!!!!!!!!!!!!!!',snd
-			PlayStaticSound(snd)
-			self.openness += 0.1
+		if key in Door.KEYS:
+			if key == self.key:
+				snd = random.choice(['rc/snd/door1.wav','rc/snd/door3.wav','rc/snd/door4.mp3'])
+				PlayStaticSound(snd)
+				self.tip.sprite.visible = False
+				self.openness += 0.1
+				self.game.selector.set_entity(self) 
+				GAME_CONSOLE.write('Door openness:',str(self.openness))
+				if self.openness >= 10:
+					PlayStaticSound('rc/snd/door_open.wav')
+					self.game.ending('good')
 			self.choose_key( )
-			self.game.selector.set_entity(self) 
-			GAME_CONSOLE.write('Door openness:',str(self.openness))
-			if self.openness >= 10:
-				self.game.ending('good')
 
 	def get_tip_text(self):
 		return 'Press [{}] to hit door [{}%]'.format(KEY.symbol_string(self.key),int(self.openness*100.0/10.0))
@@ -197,9 +200,6 @@ class Window(GameEntity):
 				self.timer -= dt
 			else:
 				self.spawn_cat()
-			# print 'cat spawned'
-		# else:
-			# print len([cat for cat in self.cats if cat.is_visiable])
 
 	def initial_spawn_cats(self):
 		for i in range(self.cat_limit):
@@ -283,7 +283,6 @@ class MineSignal(SpriteGameEntity):
 			return 0
 		self.scale = pila(self.game.time,self.cat.mine_timer * 0.5) * 0.7
 
-
 class MineCat(AnimatedGameEntity):
 	next_id = 0
 	# цифры из предыдущего проекта
@@ -294,9 +293,7 @@ class MineCat(AnimatedGameEntity):
 			]
 		}
 	)
-	MG_KEYS=[KEY.Q,KEY.W,KEY.E,KEY.R,
-			KEY.A,KEY.S,KEY.D,KEY.F,
-			KEY.Z,KEY.X,KEY.C,KEY.V]
+	MG_KEYS=[KEY.W,KEY.A,KEY.S,KEY.D]
 
 	def __init__(self,x,y,id):
 		AnimatedGameEntity.__init__(self, MineCat.ANIMATION_LIST)
@@ -308,6 +305,7 @@ class MineCat(AnimatedGameEntity):
 		self.y = y
 		self.vx = 1.0
 		self.vy = 0.0
+		self.velocity = 400.0
 		self.angle = 0
 		self.angVelocity = 0
 		self.timer = 3
@@ -353,13 +351,13 @@ class MineCat(AnimatedGameEntity):
 			self.timer -= dt
 			if self.timer <= 0:
 				self.setup_task()
-			k=400
 			self.affectAngleVelocity(dt)	
-			self.x += self.vx*dt*k
-			self.y += self.vy*dt*k
+			self.x += self.vx*dt
+			self.y += self.vy*dt
 		self.end_update_coordinates()
 
 	def boom(self):
+		PlayStaticSound('rc/snd/explosion_inside.mp3')
 		self.game.ending('bad')
 
 	def spawn(self):
@@ -368,19 +366,11 @@ class MineCat(AnimatedGameEntity):
 		self.hide()
 
 	def throw(self):
-		# print 'cat spawned'
 		self.is_visiable = True
 		self.mine_timer = 30
 		self.set_animation('Run')
 		self.game.add_entity_of_class('cats',self)
 		self.show()
-
-	def velocity(self):
-		return math.sqrt(self.vx*self.vx + self.vy*self.vY)
-
-	def setVelocity(slef, k = 1):
-		self.vx = k*self.vx
-		self.vy = k*self.vy
 
 	def setup_task(self):
 		#нормальное распределение М[],сигма
@@ -391,10 +381,8 @@ class MineCat(AnimatedGameEntity):
 	def affectAngleVelocity(self, dt):
 		dr = self.angVelocity * dt
 		self.rotation += -dr
-		drr = (dr / 180) * math.pi
-		self.vx, self.vy =\
-		self.vx * math.cos(drr) - self.vy * math.sin(drr),\
-		self.vx * math.sin(drr) + self.vy * math.cos(drr)
+		rr = ((self.rotation+90) / 180) * math.pi
+		self.vx, self.vy = math.sin(rr) * self.velocity,math.cos(rr) * self.velocity
  
 	#возвращает расстояние от текущей сущности до указанной
 	def distance(self, entity):
@@ -403,7 +391,6 @@ class MineCat(AnimatedGameEntity):
 		return math.sqrt(dx*dx + dy*dy)-entity.radius
 
 	def destroy(self):
-		print 'cat destroyed'
 		self.game.player.caught_cat = None
 		self.is_visiable = False
 		self.game.remove_entity_of_class('cats',self)
@@ -419,13 +406,16 @@ class MineCat(AnimatedGameEntity):
 			self.game.player.caught_cat.handle_minigame_key_press(key)
 
 	def start_minigame(self):
-		self.MG_timer = 1
+		self.MG_timer = 2
 		self.MG_key_pressed = False
 		self.MG_key = random.choice(MineCat.MG_KEYS)
 
 	def handle_minigame_key_press(self,key):
-		if key == self.MG_key:
-			self.MG_key_pressed = True
+		if key in MineCat.MG_KEYS:
+			if key == self.MG_key:
+				self.MG_key_pressed = True
+			else:
+				self.game.player.caught_cat = None
 
 	def get_minigame_tip(self):
 		if self.MG_key_pressed:
@@ -452,7 +442,7 @@ def get_level(i):
 				{'class':Player,'kwargs':{'x':0,'y':0}},
 				{'class':Window,'kwargs':{'x':MyGame.LIMIT_LEFT,'y':-250,'id':0,'cat_limit':3}},
 				{'class':Window,'kwargs':{'x':MyGame.LIMIT_RIGHT,'y':330,'id':0}},
-				{'class':Door,'kwargs':{'x':270,'y':MyGame.LIMIT_BOTTOM}},
+				{'class':Door,'kwargs':{'x':290,'y':MyGame.LIMIT_BOTTOM}},
 				{'class':Selector,'kwargs':{}}
 			]
 		}
@@ -465,6 +455,7 @@ class MyGame(Game):
 	LIMIT_BOTTOM = -500
 	WORLD_WIDTH = LIMIT_RIGHT - LIMIT_LEFT
 	WORLD_HEIGHT = LIMIT_TOP - LIMIT_BOTTOM
+	BG_IMAGE = LoadTexture('rc/img/background.png',anchor='center')
 	def __init__(self,tip_layer):
 		Game.__init__(self)
 
@@ -512,6 +503,13 @@ class MyGame(Game):
 	def handle_key_release(self,key):
 		if key in Player.DIR_KEYS:
 			self.player.dirkeys[key] = 0
+
+	def draw_all(self):
+		glPushMatrix()
+		glScalef(1.666,1.666,1.0)
+		MyGame.BG_IMAGE.blit(0,0)
+		glPopMatrix()
+		Game.draw_all(self)
 
 	def update(self,dt):
 		Game.update(self,dt)
@@ -583,7 +581,7 @@ class Player(AnimatedGameEntity):
 		else:
 			self.diry = 0
 
-		k = 400.0
+		k = 500.0
 		angle = Player.DIR_ANGLE_MAP[int(1-self.diry)][int(1+self.dirx)]
 
 		if angle != None:
@@ -622,6 +620,8 @@ class Player(AnimatedGameEntity):
 		self.y += self.vy * dt
 
 		self.end_update_coordinates( )
+
+		self.game.camera.focus_x,self.game.camera.focus_y = self.x,self.y
 
 	#возвращает расстояние от текущей сущности до указанной
 	def distance(self, entity):
