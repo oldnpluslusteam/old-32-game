@@ -5,4 +5,5 @@ from game import *
 
 if __name__ == '__main__':
 	window = MainWindow( )
+	window.maximize( )
 	pyglet.app.run( )
