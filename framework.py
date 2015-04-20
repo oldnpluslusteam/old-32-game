@@ -142,6 +142,7 @@ class GameConsole:
 		self.current_line = 0
 		self.visible = True
 		self.fps_display = pyglet.clock.ClockDisplay()
+		self.disabled = False
 		for i in range(nlines):
 			newln = pyglet.text.Label(text='',font_size=18,x=0,y=0,font_name='Courier New')
 			newln.console_line_id = i
@@ -171,6 +172,8 @@ class GameConsole:
 		self.update_positions( )
 
 	def write(self,*args):
+		if self.disabled:
+			return
 		text = ''
 		for a in args:
 			text += str(a)
@@ -178,6 +181,9 @@ class GameConsole:
 		self.insert_text(text)
 
 	def draw(self):
+		if self.disabled:
+			self.visible = False
+			return
 		if self.visible:
 			for l in self.lines:
 				l.draw( )
@@ -185,12 +191,15 @@ class GameConsole:
 
 class FakeGameConsole:
 	def __init__(self):
-		pass
+		self.visible = False
 	def write(self,*args):
+		print 'Fake print method called'
+	def draw(self):
 		pass
 
 # Не самая лучшая идея создавать её прямо здесь,
 # но по-другому оно не хотело работать.
+# TODO: Переделать.
 GAME_CONSOLE = GameConsole( )
 
 ### Класс главного окна

@@ -1,10 +1,11 @@
 #!/usr/bin/python
 # coding=UTF-8
 
+import framework
 from framework import *
 import math, random
 
-GAME_CONSOLE.visible = False
+GAME_CONSOLE.disabled = True
 
 @ScreenClass('STARTUP')
 class StartupScreen(AppScreen):
@@ -120,18 +121,18 @@ class DoorTip(SpriteGameEntity):
 		self.f = f
 
 	def update(self,dt):
-		self.x = self.x0 + self.a * math.sin(self.f*self.game.time)
-		self.y = self.y0 - 100
 		if self.rotation == 0:
 			self.x = self.x0
 			self.y = self.y0 + self.a * math.sin(self.f*self.game.time)
 			self.y += 100
+		else:
+			self.x = self.x0 + self.a * math.sin(self.f*self.game.time)
+			self.y = self.y0 - 100
+			self.sprite.visible = (self.game.player.caught_cat != None)
 		self.end_update_coordinates( )
 
 class Door(GameEntity):
-	#KEYS = (KEY.A,KEY.S,KEY.D,KEY.F,KEY.Z,KEY.X,KEY.C,KEY.V,KEY.G)
-	KEYS = (KEY.Q, KEY.W, KEY.E, KEY.R, KEY.T, KEY.Y, KEY.U, KEY.I, KEY.O, KEY.P, KEY.A, KEY.S, KEY.D, KEY.F, KEY.G, KEY.H, KEY.J, KEY.K, KEY.L, KEY.Z, KEY.X, KEY.C, KEY.V, KEY.B, KEY.N, KEY.M)
-
+	KEYS = [k for k in range(KEY.A,KEY.Z+1)]
 
 	def __init__(self,x,y):
 		GameEntity.__init__(self)
