@@ -120,8 +120,12 @@ class DoorTip(SpriteGameEntity):
 		self.f = f
 
 	def update(self,dt):
-		self.x = self.x0
-		self.y = self.y0 + self.a * math.sin(self.f*self.game.time)
+		self.x = self.x0 + self.a * math.sin(self.f*self.game.time)
+		self.y = self.y0 - 100
+		if self.rotation == 0:
+			self.x = self.x0
+			self.y = self.y0 + self.a * math.sin(self.f*self.game.time)
+			self.y += 100
 		self.end_update_coordinates( )
 
 class Door(GameEntity):
@@ -191,6 +195,12 @@ class Window(GameEntity):
 		self.game.add_entity_of_class('windows',self)
 		self.initial_spawn_cats()
 		self.end_update_coordinates( )
+		t = DoorTip(self.x,self.y + 100,20,-10)
+		t.rotation = -90
+		if -250 == self.y:
+			t.rotation = 90
+		self.tip = t
+		self.game.addEntity(t)
 
 	def on_collision(self, other):
 		# обработка столкновений
@@ -628,7 +638,7 @@ class Player(AnimatedGameEntity):
 		self.game.player = self
 
 	def get_tip_text(self):
-		return 'Use arrow keys'
+		return 'Use arrow keys to move'
 
 	def update(self,dt):
 		self.update_direction( )
