@@ -175,7 +175,7 @@ class Door(GameEntity):
 				if self.openness >= 10:
 					PlayStaticSound('rc/snd/door_open.wav')
 					self.game.ending('good')
-			self.choose_key( )
+				self.choose_key( )
 
 	def get_tip_text(self):
 		return 'Press [{}] to hit door [{}%]'.format(KEY.symbol_string(self.key),int(self.openness*100.0/10.0))
